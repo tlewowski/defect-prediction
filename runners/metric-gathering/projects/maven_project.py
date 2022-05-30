@@ -2,8 +2,8 @@ import os
 import subprocess
 import xml.etree.ElementTree as ET
 
-from iresearch_context import IResearchContext
-from project import Project
+from ..iresearch_context import IResearchContext
+from ..project import Project
 
 MVN_NS = {
     'mvn': 'http://maven.apache.org/POM/4.0.0',

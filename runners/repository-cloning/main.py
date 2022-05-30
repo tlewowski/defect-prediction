@@ -51,7 +51,7 @@ def run_as_main():
     args = parser.parse_args()
     projects = []
     with open(args.list) as f:
-        reader = csv.reader(f, delimiter=';')
+        reader = csv.reader(f, delimiter=',')
         for row in reader:
             url = row[0]
             project_name = re.search(".*/([^/]+).git/?", url)
