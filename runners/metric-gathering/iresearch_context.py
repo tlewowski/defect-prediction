@@ -6,7 +6,8 @@ from metrics_tool import MetricsTool
 
 
 class IResearchContext:
-    no_build: bool
+    build: bool
+    analyze: bool
     params: Namespace
 
     def metrics_tool(self, tool_name: str, tool_path: str) -> MetricsTool:
@@ -28,4 +29,7 @@ class IResearchContext:
         pass
 
     def binary_path(self, name: str) -> str:
+        pass
+
+    def reports_wd(self, tool: MetricsTool, project: Project) -> str:
         pass

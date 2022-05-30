@@ -1,4 +1,5 @@
 import os
+import subprocess
 import xml.etree.ElementTree as ET
 
 from iresearch_context import IResearchContext
@@ -15,6 +16,7 @@ class MavenProject(Project):
         self.src_path = src_path
         self.name = self._name_from_pom()
         self.context = context
+        self.revision = self._revision_from_src()
 
     def build(self):
         tool = self.context.build_tool('maven')
@@ -33,3 +35,13 @@ class MavenProject(Project):
             return os.path.basename(self.src_path)
         else:
             return artifact_id
+
+    def _revision_from_src(self) -> str:
+        git_path = self.context.binary_path('git')
+        args = [git_path, 'rev-parse', 'HEAD']
+        rev = subprocess.run(args, capture_output=True).stdout.decode("utf-8").strip()
+        if not rev:
+            print("MVNP: failed to resolve version. Using 'unknown'")
+            return 'unknown'
+        else:
+            return rev

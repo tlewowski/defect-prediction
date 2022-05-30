@@ -14,10 +14,11 @@ from projects.maven import Maven
 
 
 class ResearchContext(IResearchContext):
-    def __init__(self, report_directory: str, working_directory: str, no_build: bool, params: Namespace):
+    def __init__(self, report_directory: str, working_directory: str, params: Namespace):
         self.report_directory = report_directory
         self.working_directory = working_directory
-        self.no_build = no_build
+        self.build = params.build
+        self.analyze = params.analyze
         self.params = params
 
     def metrics_tool(self, tool_name, tool_path):
@@ -37,10 +38,13 @@ class ResearchContext(IResearchContext):
         return resolve_project(project_path, self)
 
     def metrics_wd(self, tool: MetricsTool, project: Project) -> str:
-        return os.path.join(self.working_directory, "metrics", tool.name, project.name)
+        return os.path.join(self.working_directory, "metrics", tool.name, project.name, project.revision)
+
+    def reports_wd(self, tool: MetricsTool, project: Project) -> str:
+        return os.path.join(self.report_directory, "metrics", tool.name, project.name, project.revision)
 
     def build_wd(self, project: Project) -> str:
-        return os.path.join(self.working_directory, "build", project.name)
+        return os.path.join(self.working_directory, "build", project.name, project.revision)
 
     def build_tool_wd(self, tool: BuildTool) -> str:
         return os.path.join(self.working_directory, "tool-stuff", tool.name)

@@ -1,5 +1,7 @@
+import csv
 import os
 import subprocess
+import xml.etree.ElementTree as ET
 
 from project import Project
 from iresearch_context import IResearchContext
@@ -13,20 +15,55 @@ class JPeek(MetricsTool):
         self.jpeek_path = jpeek_path
         self.context = context
 
-    def analyze(self, project: Project):
-        if self.context.no_build:
+    def analyze(self, project: Project) -> str:
+        if self.context.build:
             project.build()
 
-        args = [
-            self.context.binary_path("java"),
-            "-jar",
-            self.jpeek_path,
-            "--sources",
-            project.src_path,
-            "--target",
-            self.context.metrics_wd(self, project)
-        ]
+        raw_results_dir = self.context.metrics_wd(self, project)
 
-        print(args)
 
-        subprocess.run(args)
+
+        if self.context.analyze:
+            args = [
+                self.context.binary_path("java"),
+                "-jar",
+                self.jpeek_path,
+                "--sources",
+                project.src_path,
+                "--target",
+                raw_results_dir
+            ]
+            print("JPEEK: running with:", args)
+            subprocess.run(args)
+
+        return raw_results_dir
+
+    def normalize_results(self, raw_results: str, project: Project):
+        metrics = ET.parse(os.path.join(raw_results, "index.xml")).findall("./metric")
+        metric_names = [m.attrib.get("name") for m in metrics]
+        print("JPEEK: extracting metrics:", metric_names, "for project:", project.name)
+
+        reports_path = self.context.reports_wd(self, project)
+        os.makedirs(reports_path, exist_ok=True)
+
+        all_metrics = []
+        for metric in metric_names:
+            name = "JPEEK_" + metric
+            metric_file = ET.parse(os.path.join(raw_results, metric + ".xml"))
+            metric_values = [(name, c.attrib.get('id'), c.attrib.get('value')) for c in metric_file.findall("./app/class")]
+            package_values = [
+                (name, p.attrib.get('id') + '.' + c.attrib.get('id'), c.attrib.get('value'))
+                for p in metric_file.findall("./app/package")
+                for c in p.findall('./class')
+            ]
+            all_metrics.extend(metric_values)
+            all_metrics.extend(package_values)
+
+        csv_header = ["metric_name", "entity", "metric_value"]
+        target_file = os.path.join(reports_path, "metrics.csv")
+        with open(target_file, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(csv_header)
+            writer.writerows(all_metrics)
+
+        print("JPEEK: Written", len(all_metrics), "metric values for", len(metric_names), "metrics to", target_file)
