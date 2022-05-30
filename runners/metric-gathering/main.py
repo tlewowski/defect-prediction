@@ -1,8 +1,3 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
 import argparse
 
 from research_context import ResearchContext
@@ -26,14 +21,7 @@ def run_as_main():
     raw_results = tool.analyze(project)
     tool.normalize_results(raw_results, project)
 
-    print("MAIN: Finished!")
+    print("MGMAIN: Finished!")
 
-
-
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     run_as_main()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
