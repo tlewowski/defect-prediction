@@ -2,45 +2,8 @@ import argparse
 import csv
 import os
 import re
-import subprocess
 
-
-class ProjectLocation:
-    remote: str
-    local: str
-    target_rev: str | None
-
-    def __init__(self, remote: str, local: str, target_rev: str | None):
-        self.remote = remote
-        self.local = local
-        self.target_rev = target_rev
-
-    def prepare(self):
-        print("GITL: Preparing", self.remote, "to", self.local, " default:", self.target_rev)
-
-        self.clone()
-        if self.target_rev:
-            self.checkout()
-
-    def clone(self):
-        args = [
-            "git",
-            "clone"
-        ]
-
-        args.extend(["--", self.remote, self.local])
-        print("GITL: Cloning with", args)
-        subprocess.run(args)
-
-    def checkout(self):
-        args = [
-            "git",
-            "checkout",
-            self.target_rev
-        ]
-
-        print("GITL: Checking out with", args)
-        subprocess.run(args, cwd=self.local)
+from repository_cloning.project_location import ProjectLocation
 
 
 def run_as_main():

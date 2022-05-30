@@ -1,25 +1,10 @@
 import argparse
-import csv
+import itertools
 import os
-import subprocess
-from metr
 
-def get_project_history(src: str) -> list[str]:
-    args = [
-        "git",
-        "log",
-        "--format=format:%H",
-        "--all"
-    ]
-
-    return subprocess.run(args, cwd=src, capture_output=True).stdout.decode('utf-8').splitlines(keepends=False)
-
-def diff_metrics(metrics_dir: str, later_commit: str, earlier_commit: str):
-
-    with open(os.path.join(metrics_dir, later_commit, 'metrics.csv'), 'r') as f:
-        reader = csv.reader(f, delimiter=',')
-        for row in reader:
-
+from metric_differ.differ import diff_metrics
+from metric_differ.metric_diff import save_diff
+from metric_differ.project_history import get_project_history
 
 def run_as_main():
     parser = argparse.ArgumentParser(description="Calculate software project product metrics")
@@ -35,16 +20,12 @@ def run_as_main():
     ordered_commits = [c for c in history if c in metrics_dirs]
     print("MDMAIN: Diffing metrics for", len(metrics_dirs), "dirs (", len(ordered_commits), "commits )" )
 
-    for commit_pair in zip(ordered_commits, ordered_commits[1:]):
+    for commit_pair in itertools.pairwise(ordered_commits):
         print("MDMAIN: Diffing", commit_pair[0], commit_pair[1])
-        diff_metrics(args.metrics_path, commit_pair[0], commit_pair[1])
-
-        pass
+        diff = diff_metrics(args.metrics_path, commit_pair[0], commit_pair[1])
+        save_diff(os.path.join(args.metrics_path, "diffs", commit_pair[0] + "-" + commit_pair[1]), diff)
 
     print("MDMAIN: Finished")
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     run_as_main()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
