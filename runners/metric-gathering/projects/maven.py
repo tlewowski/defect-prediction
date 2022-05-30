@@ -9,7 +9,6 @@ from projects.maven_project import MavenProject
 DEFAULT_MVN_CMD = [
     '-DskipTests',
     '-DfailIfNoTests=false',
-    'clean',
     'compile'
 ]
 

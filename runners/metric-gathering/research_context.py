@@ -7,6 +7,7 @@ from jpeek import JPeek
 
 import os
 
+from pmd import PMD
 from project import Project
 from project_resolver import resolve_project
 from metrics_tool import MetricsTool
@@ -24,6 +25,8 @@ class ResearchContext(IResearchContext):
     def metrics_tool(self, tool_name, tool_path):
         if tool_name == 'jpeek':
             return JPeek(tool_path, self)
+        elif tool_name == 'pmd':
+            return PMD(tool_path, self)
         else:
             raise Exception("Unsupported tool!")
 

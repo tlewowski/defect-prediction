@@ -8,7 +8,6 @@ CMD_OVERRIDES = {
         '-Dassemble',
         '-DskipTests',
         '-DfailIfNoTests=false',
-        'clean',
         'compile'
     ]
 }

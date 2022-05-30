@@ -14,6 +14,7 @@ MVN_NS = {
 class MavenProject(Project):
     def __init__(self, src_path: str, context: IResearchContext):
         self.src_path = src_path
+        self.build_path = src_path + '/target'
         self.name = self._name_from_pom()
         self.context = context
         self.revision = self._revision_from_src()
@@ -39,7 +40,7 @@ class MavenProject(Project):
     def _revision_from_src(self) -> str:
         git_path = self.context.binary_path('git')
         args = [git_path, 'rev-parse', 'HEAD']
-        rev = subprocess.run(args, capture_output=True).stdout.decode("utf-8").strip()
+        rev = subprocess.run(args, capture_output=True, cwd=self.src_path).stdout.decode("utf-8").strip()
         if not rev:
             print("MVNP: failed to resolve version. Using 'unknown'")
             return 'unknown'
