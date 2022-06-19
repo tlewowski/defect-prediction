@@ -56,7 +56,9 @@ class ResearchContext(IResearchContext):
         return self.existing_directory(os.path.join(self.working_directory, "tool-stuff", tool.name))
 
     def existing_directory(self, path: str) -> str:
-        os.makedirs(path, exist_ok=True)
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
+
         return path
 
 

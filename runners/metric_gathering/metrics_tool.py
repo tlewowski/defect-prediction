@@ -10,12 +10,12 @@ class MetricsTool:
     def analyze(self, project: Project) -> str:
         pass
 
-    def normalize_results(self, raw_results_path: str, project: Project) -> str:
+    def normalize_results(self, raw_results_path: str, project: Project):
         pass
 
     def print_final_metrics(self, target_path: str, entries: list[MetricValue]):
         csv_header = ["metric_name", "entity", "metric_value"]
-        entries.sort(key=lambda e: e.entity + e.metric_name)
+        entries.sort(key=lambda e: e.entity + e.metric)
 
         with open(target_path, 'w') as f:
             writer = csv.writer(f)

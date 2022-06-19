@@ -43,7 +43,6 @@ class JPeek(MetricsTool):
         print("JPEEK: extracting metrics:", metric_names, "for project:", project.name, "(", project.revision, ")")
 
         reports_path = self.context.reports_wd(self, project)
-        os.makedirs(reports_path, exist_ok=True)
 
         all_metrics = []
         for metric in metric_names:
