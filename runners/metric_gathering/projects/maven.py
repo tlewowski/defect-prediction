@@ -1,10 +1,10 @@
 import os
 import subprocess
 
-from ..build_tool import BuildTool
-from ..iresearch_context import IResearchContext
-from ..projects.mvn.overrides import CMD_OVERRIDES
-from ..projects.maven_project import MavenProject
+from build_tool import BuildTool
+from iresearch_context import IResearchContext
+from projects.mvn.overrides import CMD_OVERRIDES
+from projects.maven_project import MavenProject
 
 DEFAULT_MVN_CMD = [
     '-DskipTests',

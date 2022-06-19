@@ -7,6 +7,7 @@ from jpeek import JPeek
 
 import os
 
+from metric_gathering.javametrics import JavaMetrics
 from pmd import PMD
 from project import Project
 from project_resolver import resolve_project
@@ -27,6 +28,8 @@ class ResearchContext(IResearchContext):
             return JPeek(tool_path, self)
         elif tool_name == 'pmd':
             return PMD(tool_path, self)
+        elif tool_name == 'javametrics':
+            return JavaMetrics(tool_path, self)
         else:
             raise Exception("Unsupported tool!")
 
@@ -41,15 +44,19 @@ class ResearchContext(IResearchContext):
         return resolve_project(project_path, self)
 
     def metrics_wd(self, tool: MetricsTool, project: Project) -> str:
-        return os.path.join(self.working_directory, "metrics", tool.name, project.name, project.revision)
+        return self.existing_directory(os.path.join(self.working_directory, "metrics", tool.name, project.name, project.revision))
 
     def reports_wd(self, tool: MetricsTool, project: Project) -> str:
-        return os.path.join(self.report_directory, "metrics", tool.name, project.name, project.revision)
+        return self.existing_directory(os.path.join(self.report_directory, "metrics", tool.name, project.name, project.revision))
 
     def build_wd(self, project: Project) -> str:
-        return os.path.join(self.working_directory, "build", project.name, project.revision)
+        return self.existing_directory(os.path.join(self.working_directory, "build", project.name, project.revision))
 
     def build_tool_wd(self, tool: BuildTool) -> str:
-        return os.path.join(self.working_directory, "tool-stuff", tool.name)
+        return self.existing_directory(os.path.join(self.working_directory, "tool-stuff", tool.name))
+
+    def existing_directory(self, path: str) -> str:
+        os.makedirs(path, exist_ok=True)
+        return path
 
 
