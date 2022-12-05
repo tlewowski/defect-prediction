@@ -5,7 +5,7 @@ from research_context import ResearchContext
 def run_as_main():
     parser = argparse.ArgumentParser(description="Calculate software project product metrics")
     parser.add_argument("--tool", type=str, help="name of the tool to use (pmd / jpeek / ckjm-ext)", required = True)
-    parser.add_argument("--tool_path", type=str, help="path to the tool location", required = True)
+    parser.add_argument("--tool_path", type=str, help="path to the tool location", required = False)
     parser.add_argument("--project_path", type=str, help="path to the analyzed project", required = True)
     parser.add_argument("--report_path", type=str, help="path to the final output reports", required = True)
     parser.add_argument("--wd_path", type=str, help="path to the working directory", required = True)

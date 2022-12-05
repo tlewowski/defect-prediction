@@ -29,5 +29,3 @@ class Maven(BuildTool):
 
         print("MVN: building", project.name, "with", cmd)
         subprocess.run(cmd, cwd=project.src_path)
-
-

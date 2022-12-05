@@ -8,6 +8,7 @@ from jpeek import JPeek
 import os
 
 from metric_gathering.javametrics import JavaMetrics
+from metric_gathering.py_driller import PyDriller
 from pmd import PMD
 from project import Project
 from project_resolver import resolve_project
@@ -30,6 +31,8 @@ class ResearchContext(IResearchContext):
             return PMD(tool_path, self)
         elif tool_name == 'javametrics':
             return JavaMetrics(tool_path, self)
+        elif tool_name == 'pydriller':
+            return PyDriller(self)
         else:
             raise Exception("Unsupported tool!")
 
