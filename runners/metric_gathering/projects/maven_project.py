@@ -21,7 +21,7 @@ class MavenProject(Project):
 
     def build(self):
         tool = self.context.build_tool('maven')
-        local_repo = self.context.global_cache_dir(self)
+        local_repo = self.context.global_cache_dir(tool.name)
         print("MVNP: building classes for:", self.name, "with libraries from", local_repo)
 
         tool.build(self, local_repo)

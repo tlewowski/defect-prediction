@@ -4,17 +4,32 @@ from metric_value import MetricValue
 from project import Project
 
 
+def as_matrix(metrics: list[MetricValue]):
+    all_metrics = {}
+    metric_names = {}
+    for metric in metrics:
+        metric_names[metric.metric] = True
+        if metric.entity not in all_metrics:
+            all_metrics[metric.entity] = {}
+
+        all_metrics[metric.entity][metric.metric] = metric.value
+
+
+
+
+
 class MetricsTool:
     name: str
-
     def analyze(self, project: Project) -> str:
         pass
 
     def normalize_results(self, raw_results_path: str, project: Project):
         pass
 
+
     def print_final_metrics(self, target_path: str, entries: list[MetricValue]):
         csv_header = ["metric_name", "entity", "metric_value"]
+        metric_dict = as_matrix(entries)
         entries.sort(key=lambda e: e.entity + e.metric)
 
         with open(target_path, 'w') as f:
