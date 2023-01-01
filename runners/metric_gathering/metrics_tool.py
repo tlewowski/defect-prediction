@@ -1,7 +1,7 @@
 import csv
 
-from metric_gathering.metric_value import MetricValue
-from metric_gathering.project import Project
+from metric_value import MetricValue
+from project import Project
 
 
 class MetricsTool:

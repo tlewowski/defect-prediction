@@ -7,8 +7,8 @@ from jpeek import JPeek
 
 import os
 
-from metric_gathering.javametrics import JavaMetrics
-from metric_gathering.py_driller import PyDriller
+from javametrics import JavaMetrics
+from py_driller import PyDriller
 from pmd import PMD
 from project import Project
 from project_resolver import resolve_project

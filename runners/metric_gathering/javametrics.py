@@ -3,7 +3,7 @@ import subprocess
 import csv
 
 from iresearch_context import IResearchContext
-from metric_gathering.metric_value import MetricValue
+from metric_value import MetricValue
 from metrics_tool import MetricsTool
 from project import Project
 

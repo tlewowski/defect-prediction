@@ -1,5 +1,4 @@
 
-
 class MetricValue:
     metric: str
     entity: str
