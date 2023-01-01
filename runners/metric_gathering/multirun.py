@@ -1,7 +1,9 @@
 import argparse
+import datetime
 import os
 import time
 
+import humanize
 from git import InvalidGitRepositoryError
 from gitdb.exc import BadName
 
@@ -52,6 +54,14 @@ def get_commit_iterator(repo, args):
 
 def get_git_repo(path):
     return Repo(path=path)
+
+def project_tostring(project_path):
+    absolute = os.path.abspath(project_path)
+    if(project_path != absolute):
+        return "in {} ({})".format(project_path, absolute)
+
+    return "in {}".format(project_path)
+
 def run_as_main():
     parser = multirun_parser()
     args = parser.parse_args()
@@ -59,31 +69,32 @@ def run_as_main():
         repo = get_git_repo(args.project_path)
         commits = get_commit_iterator(repo, args)
     except InvalidGitRepositoryError:
-        print("MGMAIN_M: ", args.project_path, " (" + os.path.abspath(args.project_path) + ") is not a valid Git repository root. Exiting.")
+        print("MGMAIN_M:", args.project_path, "(" + os.path.abspath(args.project_path) + ") is not a valid Git repository root. Exiting.")
         exit(1)
     except BadName as n:
-        print("MGMAIN_M: Failed to find commit ", n.args[0], " in ", args.project_path, " (" + os.path.abspath(args.project_path) + ")")
+        print("MGMAIN_M: Failed to find commit", n.args[0], project_tostring(args.project_path))
         exit(1)
     except InvalidGitCommitRange as r:
-        print("MGMAIN_M: Invalid commit range: from ", r.start, " to ", r.end, " in ", args.project_path, " (" + os.path.abspath(args.project_path) + ")")
+        print("MGMAIN_M: Invalid commit range: from", r.start, "to", r.end, project_tostring(args.project_path))
         exit(1)
 
     total_commits = len(commits)
-    print("MGMAIN_M: Got a total of " + str(total_commits) + " commits to analyze for ", args.project_path, " (" + os.path.abspath(args.project_path) + ")")
+    print("MGMAIN_M: Got a total of", str(total_commits), "commits to analyze", project_tostring(args.project_path))
     current_index = 1
     start_time = time.monotonic()
     for commit in commits:
         commit_start_time = time.monotonic()
-        print("MGMAIN_M: Checking out commit " + str(current_index) + "/" + str(total_commits) + " (" + commit.hexsha + ") in ", args.project_path, " (" + os.path.abspath(args.project_path) + ")")
+        print("MGMAIN_M: Checking out commit", str(current_index)+ "/" + str(total_commits), " (" + commit.hexsha + ")", project_tostring(args.project_path))
         repo.head.reference = commit
         repo.head.reset(index=True, working_tree=True)
         commit_end_time = time.monotonic()
         time_taken = commit_end_time - commit_start_time
         total_time = commit_end_time - start_time
         avg_commit_time = total_time / current_index
-        print("MGMAIN_M: Finished dealing with commit " + str(current_index) + "/" + str(
-            total_commits) + " (" + commit.hexsha + ") in ", args.project_path,
-              " (" + os.path.abspath(args.project_path) + "). Time taken: current: " + str(time_taken) + "s / total: " + str(total_time) + "s / average: " + str(avg_commit_time) + "s" )
+        print("MGMAIN_M: Finished dealing with commit", str(current_index) + "/" + str(total_commits), "(" + commit.hexsha + ")", project_tostring(args.project_path) + ".",
+              "Time taken - last:", humanize.naturaldelta(datetime.timedelta(seconds=time_taken), minimum_unit="milliseconds"),
+              "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=total_time), minimum_unit="milliseconds"),
+              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=avg_commit_time), minimum_unit="milliseconds"))
         current_index = current_index + 1
 
 if __name__ == '__main__':
