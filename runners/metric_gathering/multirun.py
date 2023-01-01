@@ -81,12 +81,21 @@ def run_as_main():
     total_commits = len(commits)
     print("MGMAIN_M: Got a total of", str(total_commits), "commits to analyze", project_tostring(args.project_path))
     current_index = 1
+    successful = 0
+    failed = 0
     start_time = time.monotonic()
     for commit in commits:
         commit_start_time = time.monotonic()
         print("MGMAIN_M: Checking out commit", str(current_index)+ "/" + str(total_commits), " (" + commit.hexsha + ")", project_tostring(args.project_path))
-        repo.head.reference = commit
-        repo.head.reset(index=True, working_tree=True)
+        try:
+            repo.head.reference = commit
+            repo.head.reset(index=True, working_tree=True)
+        except Exception as ex:
+            failed = failed + 1
+            print("MGMAIN_M: Failed to checkout", commit.hexsha, "continuing with the next one. Exception:", ex)
+            current_index = current_index + 1
+            continue
+
         commit_end_time = time.monotonic()
         time_taken = commit_end_time - commit_start_time
         total_time = commit_end_time - start_time
@@ -94,8 +103,14 @@ def run_as_main():
         print("MGMAIN_M: Finished dealing with commit", str(current_index) + "/" + str(total_commits), "(" + commit.hexsha + ")", project_tostring(args.project_path) + ".",
               "Time taken - last:", humanize.naturaldelta(datetime.timedelta(seconds=time_taken), minimum_unit="milliseconds"),
               "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=total_time), minimum_unit="milliseconds"),
-              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=avg_commit_time), minimum_unit="milliseconds"))
+              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=avg_commit_time), minimum_unit="milliseconds") +
+              ". Successful:", str(successful), "failures:", str(failed))
         current_index = current_index + 1
+        successful = successful + 1
+
+    print("MGMAIN_M: Finished analyzing the project" + project_tostring(args.project_path))
+    if(failed != 0):
+        print("MGMAIN_M: Encountered failures during processing. Please review the analysis log for details")
 
 if __name__ == '__main__':
     run_as_main()
