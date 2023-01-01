@@ -13,6 +13,9 @@ class JPeek(MetricsTool):
     name = 'jpeek'
 
     def __init__(self, jpeek_path: str, context: IResearchContext):
+        if jpeek_path is None or not os.path.isfile(jpeek_path):
+            raise RuntimeError("JPeek path not given or is not a file. Got: {}".format(jpeek_path))
+
         self.jpeek_path = jpeek_path
         self.context = context
 
@@ -30,10 +33,20 @@ class JPeek(MetricsTool):
                 "--sources",
                 project.src_path,
                 "--target",
-                raw_results_dir
+                raw_results_dir,
+                "--overwrite",
+                "--metrics",
+                "C3,CAMC,CCM,LCC,LCOM,LCOM2,LCOM3,LCOM4,LCOM5,LORM,MMAC,MWE,NHD,OCC,PCC,SCOM,TCC,TLCOM"
             ]
-            print("JPEEK: running with:", args)
-            subprocess.run(args)
+
+            jpeek_log = os.path.join(self.context.logs_dir(project), "jpeek.log")
+            print("JPEEK: running with:", args, "logs going to", jpeek_log)
+            with open(jpeek_log, "w") as log:
+                proc = subprocess.run(args, cwd=project.src_path, stdout=log, stderr=log)
+                if proc.returncode.real != 0:
+                    print("JPEEK: failed to analyze", project.name, "at", project.revision, ". Log at", jpeek_log)
+                    raise RuntimeError(
+                        "Failed to analyze project {} at {} with JPeek. Log at {}".format(project.name, project.revision, jpeek_log))
 
         return raw_results_dir
 

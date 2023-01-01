@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 from build_tool import BuildTool
@@ -8,6 +9,8 @@ from projects.maven_project import MavenProject
 DEFAULT_MVN_CMD = [
     '-DskipTests',
     '-DfailIfNoTests=false',
+    '-X',
+    '-e',
     'compile'
 ]
 
@@ -24,8 +27,13 @@ class Maven(BuildTool):
         if project.name in CMD_OVERRIDES:
             cmd = CMD_OVERRIDES.get(project.name).copy()
 
-        cmd.insert(0, '-Dmaven.repo.local=' + self.context.build_tool_wd(self))
+        cmd.insert(0, '-Dmaven.repo.local=' + target_dir)
         cmd.insert(0, self.binary_path)
 
-        print("MVN: building", project.name, "with", cmd)
-        subprocess.run(cmd, cwd=project.src_path)
+        maven_log = os.path.join(self.context.logs_dir(project), "maven.log")
+        print("MVN: building", project.name, "with", cmd, "logs going to", maven_log)
+        with open(maven_log, "w") as log:
+            proc = subprocess.run(cmd, cwd=project.src_path, stdout=log, stderr=log)
+            if proc.returncode.real != 0:
+                print("MVN: failed to build", project.name, "at", project.revision, ". Log at", maven_log)
+                raise RuntimeError("Failed to build Maven project {} at {}. Log at {}".format(project.name, project.revision, maven_log))

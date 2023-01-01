@@ -34,7 +34,7 @@ class ResearchContext(IResearchContext):
         elif tool_name == 'pydriller':
             return PyDriller(self)
         else:
-            raise Exception("Unsupported tool!")
+            raise RuntimeError("Unsupported tool!")
 
     def build_tool(self, tool_name: str) -> BuildTool:
         if tool_name == 'maven':
@@ -52,6 +52,8 @@ class ResearchContext(IResearchContext):
     def reports_wd(self, tool: MetricsTool, project: Project) -> str:
         return self.existing_directory(os.path.join(self.report_directory, "metrics", tool.name, project.name, project.revision))
 
+    def logs_dir(self, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "logs", project.name, project.revision))
     def build_wd(self, project: Project) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "build", project.name, project.revision))
 

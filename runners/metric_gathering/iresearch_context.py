@@ -22,6 +22,9 @@ class IResearchContext:
     def build_wd(self, project: Project) -> str:
         pass
 
+    def logs_dir(self, project: Project) -> str:
+        pass
+
     def metrics_wd(self, tool: MetricsTool, project: Project) -> str:
         pass
 

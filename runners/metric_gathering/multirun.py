@@ -2,12 +2,13 @@ import argparse
 import datetime
 import os
 import time
+import traceback
 
 import humanize
 from git import InvalidGitRepositoryError
 from gitdb.exc import BadName
 
-from singlerun import single_run_parser
+from singlerun import single_run_parser,single_run_with_args
 from git.repo.base import Repo
 
 
@@ -21,6 +22,7 @@ def multirun_parser():
     parser = single_run_parser()
     parser.add_argument("--start", type=str, help="First commit to analyze", required=False)
     parser.add_argument("--end", type=str, help="Last commit to analyze", required=True)
+    parser.add_argument("--max_failures", type=int, help="Number of errors that will not stop the analysis", default=0)
     return parser
 
 def first_commit(repo):
@@ -50,6 +52,7 @@ def get_commit_iterator(repo, args):
     else:
         commits = list(repo.iter_commits(rev=end))
 
+    commits.reverse()
     return commits
 
 def get_git_repo(path):
@@ -68,14 +71,17 @@ def run_as_main():
     try:
         repo = get_git_repo(args.project_path)
         commits = get_commit_iterator(repo, args)
-    except InvalidGitRepositoryError:
+    except InvalidGitRepositoryError as err:
         print("MGMAIN_M:", args.project_path, "(" + os.path.abspath(args.project_path) + ") is not a valid Git repository root. Exiting.")
+        traceback.print_exception(err)
         exit(1)
     except BadName as n:
         print("MGMAIN_M: Failed to find commit", n.args[0], project_tostring(args.project_path))
+        traceback.print_exception(n)
         exit(1)
     except InvalidGitCommitRange as r:
         print("MGMAIN_M: Invalid commit range: from", r.start, "to", r.end, project_tostring(args.project_path))
+        traceback.print_exception(r)
         exit(1)
 
     total_commits = len(commits)
@@ -92,24 +98,44 @@ def run_as_main():
             repo.head.reset(index=True, working_tree=True)
         except Exception as ex:
             failed = failed + 1
-            print("MGMAIN_M: Failed to checkout", commit.hexsha, "continuing with the next one. Exception:", ex)
+            print("MGMAIN_M: Failed to checkout", commit.hexsha, project_tostring(args.project_path), "continuing with the next one.",
+                  "Total failures:", str(failed), "Exception:", ex)
+            traceback.print_exception(ex)
             current_index = current_index + 1
+            if failed > args.max_failures:
+                print("MGMAIN_M: Error threshold exceeded. Terminating.")
+                exit(1)
+
+            continue
+
+        try:
+            single_run_with_args(args)
+        except Exception as ex:
+            failed = failed + 1
+            print("MGMAIN_M: Failed to analyze", commit.hexsha, project_tostring(args.project_path), "continuing with the next one.",
+                  "Total failures:", str(failed), "Exception:", ex)
+            traceback.print_exception(ex)
+            current_index = current_index + 1
+            if failed > args.max_failures:
+                print("MGMAIN_M: Error threshold exceeded. Terminating.")
+                exit(1)
+
             continue
 
         commit_end_time = time.monotonic()
         time_taken = commit_end_time - commit_start_time
         total_time = commit_end_time - start_time
         avg_commit_time = total_time / current_index
+        successful = successful + 1
         print("MGMAIN_M: Finished dealing with commit", str(current_index) + "/" + str(total_commits), "(" + commit.hexsha + ")", project_tostring(args.project_path) + ".",
               "Time taken - last:", humanize.naturaldelta(datetime.timedelta(seconds=time_taken), minimum_unit="milliseconds"),
               "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=total_time), minimum_unit="milliseconds"),
               "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=avg_commit_time), minimum_unit="milliseconds") +
               ". Successful:", str(successful), "failures:", str(failed))
         current_index = current_index + 1
-        successful = successful + 1
 
-    print("MGMAIN_M: Finished analyzing the project" + project_tostring(args.project_path))
-    if(failed != 0):
+    print("MGMAIN_M: Finished analyzing the project", project_tostring(args.project_path))
+    if failed != 0:
         print("MGMAIN_M: Encountered failures during processing. Please review the analysis log for details")
 
 if __name__ == '__main__':

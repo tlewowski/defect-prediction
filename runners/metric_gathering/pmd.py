@@ -22,6 +22,9 @@ class PMD(MetricsTool):
     name = 'pmd'
 
     def __init__(self, pmd_home_path, context: IResearchContext):
+        if pmd_home_path is None or not os.path.isfile(pmd_home_path):
+            raise RuntimeError("PMD path not given or is not a file. Got: {}".format(pmd_home_path))
+
         self.pmd_home_path = pmd_home_path
         self.context = context
 

@@ -14,7 +14,7 @@ def single_run_parser():
     return parser
 
 def single_run_with_args(args):
-    print("MGMAIN_S: Starting", args.project_path)
+    print("MGMAIN_S: Starting analysis: {} on {}".format(args.tool, args.project_path))
     context = ResearchContext(args.report_path, args.wd_path, args)
     tool = context.metrics_tool(args.tool, args.tool_path)
     project = context.project(args.project_path)

@@ -26,6 +26,9 @@ class JavaMetrics(MetricsTool):
 
 
     def __init__(self, javametrics_jar, context: IResearchContext):
+        if javametrics_jar is None or not os.path.isfile(javametrics_jar):
+            raise RuntimeError("JavaMetrics path not given or is not a file. Got: {}".format(javametrics_jar))
+
         self.javametrics_jar = javametrics_jar
         self.context = context
 
