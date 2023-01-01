@@ -1,4 +1,8 @@
 import argparse
+import datetime
+import time
+
+import humanize.time
 
 from research_context import ResearchContext
 
@@ -19,10 +23,18 @@ def single_run_with_args(args):
     tool = context.metrics_tool(args.tool, args.tool_path)
     project = context.project(args.project_path)
 
-    raw_results = tool.analyze(project)
-    tool.normalize_results(raw_results, project)
 
-    print("MGMAIN_S: Finished!")
+    start_time = time.monotonic()
+    raw_results = tool.analyze(project)
+    after_analysis = time.monotonic()
+    print("MGMAIN_S: Analysis finished. Time taken:", humanize.naturaldelta(datetime.timedelta(seconds=after_analysis - start_time), minimum_unit="milliseconds"))
+    tool.normalize_results(raw_results, project)
+    after_normalization = time.monotonic()
+
+    print("MGMAIN_S: Postprocessing of", args.project_path, " finished. Time taken - total: ",
+          humanize.naturaldelta(datetime.timedelta(seconds=after_normalization - start_time), minimum_unit="milliseconds"),
+          ", postprocessing:", humanize.naturaldelta(datetime.timedelta(seconds=after_normalization - after_analysis), minimum_unit="milliseconds"))
+
 def run_as_main():
     args = single_run_parser().parse_args()
     single_run_with_args(args)

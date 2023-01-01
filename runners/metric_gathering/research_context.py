@@ -54,8 +54,15 @@ class ResearchContext(IResearchContext):
 
     def logs_dir(self, project: Project) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "logs", project.name, project.revision))
+
+    def cache_dir(self, tool: MetricsTool, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "cache", project.name, tool.name))
+
     def build_wd(self, project: Project) -> str:
-        return self.existing_directory(os.path.join(self.working_directory, "build", project.name, project.revision))
+        return self.existing_directory(os.path.join(self.working_directory, "build", project.name))
+
+    def global_cache_dir(self, tool: BuildTool) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "global-cache", tool.name))
 
     def build_tool_wd(self, tool: BuildTool) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "tool-stuff", tool.name))

@@ -22,7 +22,7 @@ class PMD(MetricsTool):
     name = 'pmd'
 
     def __init__(self, pmd_home_path, context: IResearchContext):
-        if pmd_home_path is None or not os.path.isfile(pmd_home_path):
+        if pmd_home_path is None or not os.path.isdir(pmd_home_path):
             raise RuntimeError("PMD path not given or is not a file. Got: {}".format(pmd_home_path))
 
         self.pmd_home_path = pmd_home_path
@@ -31,7 +31,7 @@ class PMD(MetricsTool):
     def analyze(self, project: Project) -> str:
         target_dir = self.context.metrics_wd(self, project)
         target_file = os.path.join(target_dir, 'report.xml')
-        pmd_cache = os.path.join(target_dir, 'cache')
+        pmd_cache = os.path.join(self.context.cache_dir(self, project), 'pmd.cache')
 
         if self.context.analyze:
             cmd = pmd_runner().copy()
@@ -40,9 +40,16 @@ class PMD(MetricsTool):
             cmd.extend(['--dir', project.src_path, '--cache', pmd_cache])
             cmd.extend(output_format)
             cmd.extend(['--rulesets', os.path.join(RULESET_LOCATION, "java-ruleset.xml")])
+            cmd.extend(['--fail-on-violation', 'false'])
 
-            print("PMD: Running with", cmd)
-            subprocess.run(cmd)
+            pmd_log = os.path.join(self.context.logs_dir(project), "pmd.log")
+            print("PMD: running with:", cmd, "logs going to", pmd_log)
+            with open(pmd_log, "w") as log:
+                proc = subprocess.run(cmd,cwd=project.src_path, stdout=log, stderr=log)
+                if proc.returncode.real != 0:
+                    print("PMD: failed to analyze", project.name, "at", project.revision, ". Log at", pmd_log)
+                    raise RuntimeError(
+                        "Failed to analyze project {} at {} with PMD. Log at {}".format(project.name, project.revision, pmd_log))
 
         return target_file
 

@@ -8,21 +8,10 @@ import net.sourceforge.pmd.lang.metrics.MetricsUtil;
 
 import java.util.Arrays;
 
-public class AllMetricsValuesRule extends AbstractJavaRule {
+public class AllCallablesValuesRule extends AbstractJavaRule {
     @Override
     public String getRuleSetName() {
-        return "java-metrics";
-    }
-
-    public Object visit(ASTClassOrInterfaceDeclaration node, Object data) {
-        for(JavaClassMetricKey metric : JavaClassMetricKey.values()) {
-            if(MetricsUtil.supportsAll(node, metric)) {
-                double metricValue = MetricsUtil.computeMetric(metric, node);
-                addViolationWithMessage(data, node, metric.name() + ":" + String.valueOf(metricValue));
-            }
-        }
-
-        return super.visit(node, data);
+        return "java-metrics-callables";
     }
 
     public Object visit(ASTMethodDeclaration node, Object data) {

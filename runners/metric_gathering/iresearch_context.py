@@ -31,6 +31,12 @@ class IResearchContext:
     def build_tool_wd(self, tool: BuildTool) -> str:
         pass
 
+    def cache_dir(self, tool: MetricsTool, project: Project) -> str:
+        pass
+
+    def global_cache_dir(self, tool: BuildTool) -> str:
+        pass
+
     def binary_path(self, name: str) -> str:
         pass
 

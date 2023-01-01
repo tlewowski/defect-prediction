@@ -25,9 +25,6 @@ def multirun_parser():
     parser.add_argument("--max_failures", type=int, help="Number of errors that will not stop the analysis", default=0)
     return parser
 
-def first_commit(repo):
-    pass
-
 def validate_commit_range(repo, start, end):
     start_commit = None
     if start is not None:

@@ -21,10 +21,10 @@ class MavenProject(Project):
 
     def build(self):
         tool = self.context.build_tool('maven')
-        build_wd = self.context.build_wd(self)
-        print("MVNP: building classes for:", self.name, "in", build_wd)
+        local_repo = self.context.global_cache_dir(self)
+        print("MVNP: building classes for:", self.name, "with libraries from", local_repo)
 
-        tool.build(self, build_wd)
+        tool.build(self, local_repo)
 
     def _name_from_pom(self) -> str:
         pom_path = os.path.join(self.src_path, 'pom.xml')
