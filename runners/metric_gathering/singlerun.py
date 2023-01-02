@@ -17,15 +17,14 @@ def single_run_parser():
     parser.add_argument("--analyze", action=argparse.BooleanOptionalAction, help="analyze the projects", default=False)
     return parser
 
-def single_run_with_args(args):
-    print("MGMAIN_S: Starting analysis: {} on {}".format(args.tool, args.project_path))
+def single_run_with_args(args, only_paths):
+    print("MGMAIN_S: Starting analysis: {} on {} (subset: {})".format(args.tool, args.project_path, only_paths is not None))
     context = ResearchContext(args.report_path, args.wd_path, args)
     tool = context.metrics_tool(args.tool, args.tool_path)
     project = context.project(args.project_path)
 
-
     start_time = time.monotonic()
-    raw_results = tool.analyze(project)
+    raw_results = tool.analyze(project, only_paths)
     after_analysis = time.monotonic()
     print("MGMAIN_S: Analysis finished. Time taken:", humanize.naturaldelta(datetime.timedelta(seconds=after_analysis - start_time), minimum_unit="milliseconds"))
     tool.normalize_results(raw_results, project)

@@ -28,7 +28,13 @@ class PMD(MetricsTool):
         self.pmd_home_path = pmd_home_path
         self.context = context
 
-    def analyze(self, project: Project) -> str:
+    def make_file_list(self, target_dir: str, only_paths: list[str]):
+        filename = os.path.join(target_dir, "pmd_analyze_list.txt")
+        with open(filename, "w") as f:
+            for line in only_paths:
+                f.write(f"{line}\n")
+        return filename
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         target_dir = self.context.metrics_wd(self, project)
         target_file = os.path.join(target_dir, 'report.xml')
         pmd_cache = os.path.join(self.context.cache_dir(self, project), 'pmd.cache')
@@ -37,7 +43,13 @@ class PMD(MetricsTool):
             cmd = pmd_runner().copy()
             cmd[0] = os.path.join(self.pmd_home_path, "bin", cmd[0])
             output_format = ['--format', 'xml', '--report-file', target_file]
-            cmd.extend(['--dir', project.src_path, '--cache', pmd_cache])
+            if only_paths is not None:
+                file_list = self.make_file_list(self.context.workspace(self, project), only_paths)
+                cmd.extend(["--file-list", file_list])
+            else:
+                cmd.extend(['--dir', project.src_path])
+                
+            cmd.extend(['--cache', pmd_cache])
             cmd.extend(output_format)
             cmd.extend(['--rulesets', os.path.join(RULESET_LOCATION, "java-ruleset.xml")])
             cmd.extend(['--fail-on-violation', 'false'])
@@ -55,6 +67,8 @@ class PMD(MetricsTool):
 
     def normalize_results(self, raw_results_path: str, project: Project):
         print("PMD: extracting metrics for project: ", project.name, "from", raw_results_path)
+        if not os.path.isfile(raw_results_path):
+            raise RuntimeError("Expected raw PMD results file at {}, but none found".format(raw_results_path))
 
         results = ET.parse(raw_results_path)
         files = results.findall('./pmdns:file', namespaces=PMD_NS)

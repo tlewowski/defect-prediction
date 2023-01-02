@@ -34,6 +34,8 @@ class IResearchContext:
     def cache_dir(self, tool: MetricsTool, project: Project) -> str:
         pass
 
+    def workspace(self, tool: MetricsTool, project: Project) -> str:
+        pass
     def global_cache_dir(self, tool: BuildTool) -> str:
         pass
 

@@ -34,7 +34,7 @@ def as_matrix(metrics: list[MetricValue]):
 
 class MetricsTool:
     name: str
-    def analyze(self, project: Project) -> str:
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         pass
 
     def normalize_results(self, raw_results_path: str, project: Project):

@@ -23,6 +23,7 @@ def multirun_parser():
     parser.add_argument("--start", type=str, help="First commit to analyze", required=False)
     parser.add_argument("--end", type=str, help="Last commit to analyze", required=True)
     parser.add_argument("--max_failures", type=int, help="Number of errors that will not stop the analysis", default=0)
+    parser.add_argument("--only_changes", type=bool, help="Only gather metrics for changed files", default=True)
     return parser
 
 def validate_commit_range(repo, start, end):
@@ -62,6 +63,11 @@ def project_tostring(project_path):
 
     return "in {}".format(project_path)
 
+def touched_files(commit, project_path):
+    if len(commit.parents) == 0:
+        return [os.path.join(project_path, t.name) for t in commit.tree]
+
+    return [os.path.join(project_path, d.b_path) for d in commit.diff(commit.parents[0])]
 def run_as_main():
     parser = multirun_parser()
     args = parser.parse_args()
@@ -106,7 +112,14 @@ def run_as_main():
             continue
 
         try:
-            single_run_with_args(args)
+            modifications = None
+            if args.only_changes:
+                modifications = touched_files(commit, args.project_path)
+
+            if not args.only_changes or len(modifications) > 0:
+                single_run_with_args(args, modifications)
+            else:
+                print("MGMAIN_M: Skipping", commit.hexsha, project_tostring(args.project_path), "because no relevant change was found")
         except Exception as ex:
             failed = failed + 1
             print("MGMAIN_M: Failed to analyze", commit.hexsha, project_tostring(args.project_path), "continuing with the next one.",

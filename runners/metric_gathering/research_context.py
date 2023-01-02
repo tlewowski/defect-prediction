@@ -64,6 +64,8 @@ class ResearchContext(IResearchContext):
     def global_cache_dir(self, tool: BuildTool) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "global-cache", tool.name))
 
+    def workspace(self, tool: MetricsTool, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "workspace", tool.name, project.name, project.revision))
     def build_tool_wd(self, tool: BuildTool) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "tool-stuff", tool.name))
 
