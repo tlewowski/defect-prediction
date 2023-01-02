@@ -7,15 +7,29 @@ from project import Project
 def as_matrix(metrics: list[MetricValue]):
     all_metrics = {}
     metric_names = {}
+    header = ["entity"]
     for metric in metrics:
-        metric_names[metric.metric] = True
+        if metric.metric not in metric_names:
+            metric_names[metric.metric] = len(metric_names.keys()) + 1
+            header.append(metric.metric)
+
         if metric.entity not in all_metrics:
             all_metrics[metric.entity] = {}
 
         all_metrics[metric.entity][metric.metric] = metric.value
 
+    print("METRICS_TOOL: Got the following metrics:", metric_names.keys())
+    matrix = []
+    for entity in all_metrics.keys():
+        entry = [None] * (len(metric_names.keys()) + 1)
+        entry[0] = entity
+        for metric in metric_names.keys():
+            if metric in all_metrics[entity]:
+                entry[metric_names[metric]] = all_metrics[entity][metric]
 
+        matrix.append(entry)
 
+    return header, matrix
 
 
 class MetricsTool:
@@ -28,14 +42,13 @@ class MetricsTool:
 
 
     def print_final_metrics(self, target_path: str, entries: list[MetricValue]):
-        csv_header = ["metric_name", "entity", "metric_value"]
-        metric_dict = as_matrix(entries)
-        entries.sort(key=lambda e: e.entity + e.metric)
+        header, metrics = as_matrix(entries)
+        metrics.sort(key=lambda e: e[0])
 
         with open(target_path, 'w') as f:
             writer = csv.writer(f)
-            writer.writerow(csv_header)
-            writer.writerows([e.as_tuple() for e in entries])
+            writer.writerow(header)
+            writer.writerows(metrics)
 
 
 def read_metrics_file(file: str) -> list[MetricValue]:

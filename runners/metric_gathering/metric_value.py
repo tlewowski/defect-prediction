@@ -10,4 +10,4 @@ class MetricValue:
         self.value = value
 
     def as_tuple(self):
-        return self.metric.encode("utf-8"), self.entity.encode("utf-8"), str(self.value).encode("utf-8")
+        return self.metric, self.entity, str(self.value)
