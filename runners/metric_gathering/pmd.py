@@ -3,7 +3,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from iresearch_context import IResearchContext
-from metric_gathering.metric_value import MetricValue
+from metric_value import MetricValue
 from metrics_tool import MetricsTool
 from project import Project
 
@@ -22,29 +22,53 @@ class PMD(MetricsTool):
     name = 'pmd'
 
     def __init__(self, pmd_home_path, context: IResearchContext):
+        if pmd_home_path is None or not os.path.isdir(pmd_home_path):
+            raise RuntimeError("PMD path not given or is not a file. Got: {}".format(pmd_home_path))
+
         self.pmd_home_path = pmd_home_path
         self.context = context
 
-    def analyze(self, project: Project) -> str:
+    def make_file_list(self, target_dir: str, only_paths: list[str]):
+        filename = os.path.join(target_dir, "pmd_analyze_list.txt")
+        with open(filename, "w") as f:
+            for line in only_paths:
+                f.write(f"{line}\n")
+        return filename
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         target_dir = self.context.metrics_wd(self, project)
         target_file = os.path.join(target_dir, 'report.xml')
-        pmd_cache = os.path.join(target_dir, 'cache')
+        pmd_cache = os.path.join(self.context.cache_dir(self, project), 'pmd.cache')
 
         if self.context.analyze:
             cmd = pmd_runner().copy()
             cmd[0] = os.path.join(self.pmd_home_path, "bin", cmd[0])
             output_format = ['--format', 'xml', '--report-file', target_file]
-            cmd.extend(['--dir', project.src_path, '--cache', pmd_cache])
+            if only_paths is not None:
+                file_list = self.make_file_list(self.context.workspace(self, project), only_paths)
+                cmd.extend(["--file-list", file_list])
+            else:
+                cmd.extend(['--dir', project.src_path])
+                
+            cmd.extend(['--cache', pmd_cache])
             cmd.extend(output_format)
             cmd.extend(['--rulesets', os.path.join(RULESET_LOCATION, "java-ruleset.xml")])
+            cmd.extend(['--fail-on-violation', 'false'])
 
-            print("PMD: Running with", cmd)
-            subprocess.run(cmd)
+            pmd_log = os.path.join(self.context.logs_dir(project), "pmd.log")
+            print("PMD: running with:", cmd, "logs going to", pmd_log)
+            with open(pmd_log, "w") as log:
+                proc = subprocess.run(cmd,cwd=project.src_path, stdout=log, stderr=log)
+                if proc.returncode.real != 0:
+                    print("PMD: failed to analyze", project.name, "at", project.revision, ". Log at", pmd_log)
+                    raise RuntimeError(
+                        "Failed to analyze project {} at {} with PMD. Log at {}".format(project.name, project.revision, pmd_log))
 
         return target_file
 
     def normalize_results(self, raw_results_path: str, project: Project):
         print("PMD: extracting metrics for project: ", project.name, "from", raw_results_path)
+        if not os.path.isfile(raw_results_path):
+            raise RuntimeError("Expected raw PMD results file at {}, but none found".format(raw_results_path))
 
         results = ET.parse(raw_results_path)
         files = results.findall('./pmdns:file', namespaces=PMD_NS)

@@ -1,5 +1,4 @@
 
-
 class MetricValue:
     metric: str
     entity: str
@@ -11,4 +10,4 @@ class MetricValue:
         self.value = value
 
     def as_tuple(self):
-        return self.metric, self.entity, self.value
+        return self.metric, self.entity, str(self.value)

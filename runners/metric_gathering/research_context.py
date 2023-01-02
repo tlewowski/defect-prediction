@@ -7,8 +7,8 @@ from jpeek import JPeek
 
 import os
 
-from metric_gathering.javametrics import JavaMetrics
-from metric_gathering.py_driller import PyDriller
+from javametrics import JavaMetrics
+from py_driller import PyDriller
 from pmd import PMD
 from project import Project
 from project_resolver import resolve_project
@@ -34,7 +34,7 @@ class ResearchContext(IResearchContext):
         elif tool_name == 'pydriller':
             return PyDriller(self)
         else:
-            raise Exception("Unsupported tool!")
+            raise RuntimeError("Unsupported tool!")
 
     def build_tool(self, tool_name: str) -> BuildTool:
         if tool_name == 'maven':
@@ -52,9 +52,20 @@ class ResearchContext(IResearchContext):
     def reports_wd(self, tool: MetricsTool, project: Project) -> str:
         return self.existing_directory(os.path.join(self.report_directory, "metrics", tool.name, project.name, project.revision))
 
-    def build_wd(self, project: Project) -> str:
-        return self.existing_directory(os.path.join(self.working_directory, "build", project.name, project.revision))
+    def logs_dir(self, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "logs", project.name, project.revision))
 
+    def cache_dir(self, tool: MetricsTool, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "cache", project.name, tool.name))
+
+    def build_wd(self, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "build", project.name))
+
+    def global_cache_dir(self, tool: BuildTool) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "global-cache", tool.name))
+
+    def workspace(self, tool: MetricsTool, project: Project) -> str:
+        return self.existing_directory(os.path.join(self.working_directory, "workspace", tool.name, project.name, project.revision))
     def build_tool_wd(self, tool: BuildTool) -> str:
         return self.existing_directory(os.path.join(self.working_directory, "tool-stuff", tool.name))
 

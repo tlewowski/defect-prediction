@@ -3,7 +3,7 @@ import subprocess
 import csv
 
 from iresearch_context import IResearchContext
-from metric_gathering.metric_value import MetricValue
+from metric_value import MetricValue
 from metrics_tool import MetricsTool
 from project import Project
 
@@ -26,6 +26,9 @@ class JavaMetrics(MetricsTool):
 
 
     def __init__(self, javametrics_jar, context: IResearchContext):
+        if javametrics_jar is None or not os.path.isfile(javametrics_jar):
+            raise RuntimeError("JavaMetrics path not given or is not a file. Got: {}".format(javametrics_jar))
+
         self.javametrics_jar = javametrics_jar
         self.context = context
 
@@ -42,8 +45,14 @@ class JavaMetrics(MetricsTool):
                 "-o",
                 raw_results_dir
             ]
-            print("JAVAMETRICS: running with:", args)
-            subprocess.run(args)
+            javametrics_log = os.path.join(self.context.logs_dir(project), "javametrics.log")
+            print("JAVAMETRICS: running with:", args, "logs going to", javametrics_log)
+            with open(javametrics_log, "w") as log:
+                proc = subprocess.run(args, cwd=project.src_path, stdout=log, stderr=log)
+                if proc.returncode.real != 0:
+                    print("JAVAMETRICS: failed to analyze", project.name, "at", project.revision, ". Log at", javametrics_log)
+                    raise RuntimeError(
+                        "Failed to analyze project {} at {} with JavaMetrics. Log at {}".format(project.name, project.revision, javametrics_log))
 
         return raw_results_dir
 
@@ -59,4 +68,4 @@ class JavaMetrics(MetricsTool):
         target_file = os.path.join(reports_path, "metrics.csv")
         self.print_final_metrics(target_file, all_metrics)
 
-        print("JAVAMETRICS: Extracted", len(all_metrics), "metrics from", len(raw_results_path))
+        print("JAVAMETRICS: Extracted", len(all_metrics), "metrics from", raw_results_path)

@@ -22,10 +22,21 @@ class IResearchContext:
     def build_wd(self, project: Project) -> str:
         pass
 
+    def logs_dir(self, project: Project) -> str:
+        pass
+
     def metrics_wd(self, tool: MetricsTool, project: Project) -> str:
         pass
 
     def build_tool_wd(self, tool: BuildTool) -> str:
+        pass
+
+    def cache_dir(self, tool: MetricsTool, project: Project) -> str:
+        pass
+
+    def workspace(self, tool: MetricsTool, project: Project) -> str:
+        pass
+    def global_cache_dir(self, tool: BuildTool) -> str:
         pass
 
     def binary_path(self, name: str) -> str:

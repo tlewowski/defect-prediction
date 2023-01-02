@@ -3,10 +3,10 @@ import datetime
 import functools
 import os
 
-from metric_gathering.iresearch_context import IResearchContext
-from metric_gathering.metric_value import MetricValue
-from metric_gathering.metrics_tool import MetricsTool
-from metric_gathering.project import Project
+from iresearch_context import IResearchContext
+from metric_value import MetricValue
+from metrics_tool import MetricsTool
+from project import Project
 from pydriller.metrics.process.contributors_count import ContributorsCount
 from pydriller.metrics.process.hunks_count import HunksCount
 from pydriller.metrics.process.lines_count import LinesCount
