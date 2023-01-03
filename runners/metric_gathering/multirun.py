@@ -20,10 +20,14 @@ class InvalidGitCommitRange(Exception):
 
 def multirun_parser():
     parser = single_run_parser()
-    parser.add_argument("--start", type=str, help="First commit to analyze", required=False)
-    parser.add_argument("--end", type=str, help="Last commit to analyze", required=True)
     parser.add_argument("--max_failures", type=int, help="Number of errors that will not stop the analysis", default=0)
-    parser.add_argument("--only_changes", type=bool, help="Only gather metrics for changed files", default=True)
+    parser.add_argument("--only_changes", type=bool, help="Only gather metrics for changed files", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--dry_run", type=bool, help="Do not run analysis, only verify validity of Git parameters", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--start", type=str, help="First commit to analyze. Ignored if --only_commits is given", required=False)
+
+    commit_range = parser.add_mutually_exclusive_group(required=True)
+    commit_range.add_argument("--end", type=str, help="Last commit to analyze. Either this parameter or --only_commits must be given")
+    commit_range.add_argument("--only_commits", type=str, help="Path to a file that contains a list of commits (one per line) on which the analysis shall be executed. Either this parameter of --end must be given")
     return parser
 
 def validate_commit_range(repo, start, end):
@@ -38,7 +42,18 @@ def validate_commit_range(repo, start, end):
 
     return [start_commit, end_commit]
 
-def get_commit_iterator(repo, args):
+def get_commit_list(repo, args):
+    if args.only_commits is not None:
+        if not os.path.isfile(args.only_commits):
+            raise RuntimeError("{} (--only_commits argument) should be a file containing commit SHA per line, but no such file found".format(args.only_commits))
+
+        try:
+            with open(args.only_commits) as f:
+                candidates = f.readlines()
+                return [repo.commit(c.strip()) for c in candidates]
+        except Exception as ex:
+            raise RuntimeError("{} (--only_commits argument) should be a file containing commit SHA per line. File found, but got an error during processing:{}".format(args.only_commits, ex))
+
     start = args.start
     end = args.end
 
@@ -56,9 +71,10 @@ def get_commit_iterator(repo, args):
 def get_git_repo(path):
     return Repo(path=path)
 
+
 def project_tostring(project_path):
     absolute = os.path.abspath(project_path)
-    if(project_path != absolute):
+    if project_path != absolute:
         return "in {} ({})".format(project_path, absolute)
 
     return "in {}".format(project_path)
@@ -73,7 +89,7 @@ def run_as_main():
     args = parser.parse_args()
     try:
         repo = get_git_repo(args.project_path)
-        commits = get_commit_iterator(repo, args)
+        commits = get_commit_list(repo, args)
     except InvalidGitRepositoryError as err:
         print("MGMAIN_M:", args.project_path, "(" + os.path.abspath(args.project_path) + ") is not a valid Git repository root. Exiting.")
         traceback.print_exception(err)
@@ -117,7 +133,10 @@ def run_as_main():
                 modifications = touched_files(commit, args.project_path)
 
             if not args.only_changes or len(modifications) > 0:
-                single_run_with_args(args, modifications)
+                if not args.dry_run:
+                    single_run_with_args(args, modifications)
+                else:
+                    print("MGMAIN_M: Skipping valid commit", commit.hexsha, project_tostring(args.project_path), "because of --dry_run param")
             else:
                 print("MGMAIN_M: Skipping", commit.hexsha, project_tostring(args.project_path), "because no relevant change was found")
         except Exception as ex:
