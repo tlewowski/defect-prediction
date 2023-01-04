@@ -8,7 +8,7 @@ from research_context import ResearchContext
 
 def single_run_parser():
     parser = argparse.ArgumentParser(description="Calculate software project product metrics")
-    parser.add_argument("--tool", type=str, help="name of the tool to use (pmd / jpeek / ckjm-ext)", required=True)
+    parser.add_argument("--tool", type=str, help="name of the tool to use (pmd / jpeek / javametrics / javametrics2)", required=True)
     parser.add_argument("--tool_path", type=str, help="path to the tool location", required=False)
     parser.add_argument("--project_path", type=str, help="path to the analyzed project", required=True)
     parser.add_argument("--report_path", type=str, help="path to the final output reports", required=True)

@@ -14,6 +14,7 @@ from project import Project
 from project_resolver import resolve_project
 from metrics_tool import MetricsTool
 from projects.maven import Maven
+from javametrics2 import JavaMetrics2
 
 
 class ResearchContext(IResearchContext):
@@ -31,6 +32,8 @@ class ResearchContext(IResearchContext):
             return PMD(tool_path, self)
         elif tool_name == 'javametrics':
             return JavaMetrics(tool_path, self)
+        elif tool_name == 'javametrics2':
+            return JavaMetrics2(tool_path, self)
         elif tool_name == 'pydriller':
             return PyDriller(self)
         else:

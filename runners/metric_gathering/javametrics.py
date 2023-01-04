@@ -59,7 +59,6 @@ class JavaMetrics(MetricsTool):
 
     def make_sample_list(self, workspace: str, project: Project, only_paths: list[str]):
         filename = os.path.join(workspace, "javametrics_sample_list.csv")
-        repo_remote = Repo(project.src_path).remotes[0].url
 
         sample_id = 1
         with open(filename, "w") as f:
