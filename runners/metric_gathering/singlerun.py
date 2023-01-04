@@ -15,6 +15,8 @@ def single_run_parser():
     parser.add_argument("--wd_path", type=str, help="path to the working directory", required=True)
     parser.add_argument("--build", action=argparse.BooleanOptionalAction, help="build the projects", default=False)
     parser.add_argument("--analyze", action=argparse.BooleanOptionalAction, help="analyze the projects", default=False)
+    parser.add_argument("--postprocess", action=argparse.BooleanOptionalAction, help="run project postprocessing", default=False)
+    parser.add_argument("--allow_no_metrics", action=argparse.BooleanOptionalAction, help="do not exit with failure if no metrics were calculated", default=False)
     return parser
 
 def single_run_with_args(args, only_paths):
@@ -27,7 +29,16 @@ def single_run_with_args(args, only_paths):
     raw_results = tool.analyze(project, only_paths)
     after_analysis = time.monotonic()
     print("MGMAIN_S: Analysis finished. Time taken:", humanize.naturaldelta(datetime.timedelta(seconds=after_analysis - start_time), minimum_unit="milliseconds"))
-    tool.normalize_results(raw_results, project)
+    if args.postprocess:
+        if raw_results is None:
+            if not args.allow_no_metrics:
+                print("MGMAIN_S: No metrics calculated, but no --allow_no_metrics not set. Terminating with failure")
+                raise RuntimeError("No metrics calculated, but no --allow_no_metrics not set. Terminating with failure")
+
+            return
+
+        tool.normalize_results(raw_results, project)
+
     after_normalization = time.monotonic()
 
     print("MGMAIN_S: Postprocessing of", args.project_path, " finished. Time taken - total: ",

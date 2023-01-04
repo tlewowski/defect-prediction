@@ -19,7 +19,10 @@ class JPeek(MetricsTool):
         self.jpeek_path = jpeek_path
         self.context = context
 
-    def analyze(self, project: Project) -> str:
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
+        if only_paths is not None:
+            raise RuntimeError("JPeek does not support incremental analysis (--only_paths flag is not allowed for jpeek)")
+
         if self.context.build:
             project.build()
 

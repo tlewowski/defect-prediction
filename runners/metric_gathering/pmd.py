@@ -45,7 +45,7 @@ class PMD(MetricsTool):
             output_format = ['--format', 'xml', '--report-file', target_file]
             if only_paths is not None:
                 file_list = self.make_file_list(self.context.workspace(self, project), only_paths)
-                cmd.extend(["--file-list", file_list])
+                cmd.extend(["--allow_no_metrics", "--file-list", file_list])
             else:
                 cmd.extend(['--dir', project.src_path])
                 

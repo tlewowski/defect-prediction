@@ -31,7 +31,10 @@ class PyDriller(MetricsTool):
     def __init__(self, context: IResearchContext):
         self.context = context
 
-    def analyze(self, project: Project) -> str:
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
+        if only_paths is not None:
+            raise RuntimeError("PyDriller does not support incremental analysis (--only_paths flag is not allowed for pydriller)")
+
         target_dir = self.context.metrics_wd(self, project)
 
         if self.context.analyze:

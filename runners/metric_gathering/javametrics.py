@@ -1,12 +1,37 @@
 import os
+import re
 import subprocess
 import csv
+
+from git import Repo
 
 from iresearch_context import IResearchContext
 from metric_value import MetricValue
 from metrics_tool import MetricsTool
 from project import Project
 
+def extract_package(class_file):
+    with open(class_file, "r") as f:
+        contents = f.read()
+        found = re.search("package (.*);", contents)
+        if not found is None:
+            return found.group(1)
+        else:
+            return None
+def extract_class_name(class_file):
+    (_, filename) = os.path.split(class_file)
+    (hopefully_class_name, extension) = os.path.splitext(filename)
+
+    if extension != ".java":
+        return "", ""
+
+    package = extract_package(class_file)
+    if package is None:
+        return "", hopefully_class_name
+
+    return package, hopefully_class_name
+
+# Supported version is JavaMetrics Lite, not the full one
 class JavaMetrics(MetricsTool):
     name = 'javametrics'
 
@@ -32,19 +57,43 @@ class JavaMetrics(MetricsTool):
         self.javametrics_jar = javametrics_jar
         self.context = context
 
-    def analyze(self, project: Project) -> str:
+    def make_sample_list(self, workspace: str, project: Project, only_paths: list[str]):
+        filename = os.path.join(workspace, "javametrics_sample_list.csv")
+        repo_remote = Repo(project.src_path).remotes[0].url
+
+        sample_id = 1
+        with open(filename, "w") as f:
+            f.write("file,package,class,method\n")
+            for class_file in only_paths:
+                (package_name, class_name) = extract_class_name(class_file)
+                if class_name != "":
+                    sample_id = sample_id + 1
+                    f.write(f"{class_file},{package_name},{class_name},\n")
+
+        if sample_id == 1:
+            return None
+
+        return filename
+    def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         raw_results_dir = self.context.metrics_wd(self, project)
 
         if self.context.analyze:
-            args = [
-                self.context.binary_path("java"),
-                "-jar",
-                self.javametrics_jar,
-                "-i",
-                project.src_path,
-                "-o",
-                raw_results_dir
-            ]
+            args = [self.context.binary_path("java"), "-jar", self.javametrics_jar]
+            args.extend(["--input", project.src_path])
+
+            if only_paths is not None:
+                sample_list = self.make_sample_list(self.context.workspace(self, project), project, only_paths)
+                if sample_list is None:
+                    print("JAVAMETRICS: no inspectable change in", project.name, "at", project.revision, ". Skipping")
+                    return None
+
+                # according to JavaMetrics documentation -gitsources should point to the location of all repositories
+                # at least if you want to download it. But if you do so, it gets crazy and starts parsing all the repos
+                # each time, which is not exactly optimal, hence only project source
+                args.extend(["--filter", sample_list])
+
+            args.extend(["--output", raw_results_dir])
+
             javametrics_log = os.path.join(self.context.logs_dir(project), "javametrics.log")
             print("JAVAMETRICS: running with:", args, "logs going to", javametrics_log)
             with open(javametrics_log, "w") as log:
