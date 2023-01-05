@@ -83,7 +83,7 @@ def touched_files(commit, project_path):
     if len(commit.parents) == 0:
         return [os.path.join(project_path, t.name) for t in commit.tree]
 
-    return [os.path.join(project_path, d.a_path) for d in commit.diff(commit.parents[0])]
+    return [os.path.join(project_path, d.b_path) for d in commit.parents[0].diff(commit) if d.change_type != 'D']
 def run_as_main():
     parser = multirun_parser()
     args = parser.parse_args()

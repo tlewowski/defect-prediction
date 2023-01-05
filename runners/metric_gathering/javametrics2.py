@@ -107,6 +107,9 @@ class JavaMetrics2(MetricsTool):
 
         return os.path.join(raw_results_dir, "class_metrics.csv")
 
+
+    def can_normalize(self, path: str) -> bool:
+        return os.path.isfile(path)
     def normalize_results(self, raw_results_path: str, project: Project):
         all_metrics = []
 

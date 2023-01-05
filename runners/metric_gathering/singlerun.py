@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import os.path
 import time
 
 import humanize.time
@@ -30,15 +31,18 @@ def single_run_with_args(args, only_paths):
     after_analysis = time.monotonic()
     print("MGMAIN_S: Analysis finished. Time taken:", humanize.naturaldelta(datetime.timedelta(seconds=after_analysis - start_time), minimum_unit="milliseconds"))
     if args.postprocess:
-        if raw_results is None:
+        if raw_results is None or not os.path.exists(raw_results):
             if not args.allow_no_metrics:
                 print("MGMAIN_S: No metrics calculated, but no --allow_no_metrics not set. Terminating with failure")
                 raise RuntimeError("No metrics calculated, but no --allow_no_metrics not set. Terminating with failure")
 
             return
 
-        tool.normalize_results(raw_results, project)
-
+        if tool.can_normalize(raw_results):
+            tool.normalize_results(raw_results, project)
+        elif not args.allow_no_metrics:
+            print("MGMAIN_S: Cannot postprocess metrics, but --allow_no_metrics not set. Terminating with failure")
+            raise RuntimeError("Cannot postprocess metrics, but --allow_no_metrics not set. Terminating with failure")
     after_normalization = time.monotonic()
 
     print("MGMAIN_S: Postprocessing of", args.project_path, " finished. Time taken - total: ",

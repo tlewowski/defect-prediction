@@ -91,7 +91,7 @@ class JavaMetrics(MetricsTool):
                 # each time, which is not exactly optimal, hence only project source
                 args.extend(["--filter", sample_list])
 
-            args.extend(["--output", raw_results_dir])
+            args.extend(["--output", os.path.join(raw_results_dir, "javametrics-out.csv")])
 
             javametrics_log = os.path.join(self.context.logs_dir(project), "javametrics.log")
             print("JAVAMETRICS: running with:", args, "logs going to", javametrics_log)
@@ -103,6 +103,9 @@ class JavaMetrics(MetricsTool):
                         "Failed to analyze project {} at {} with JavaMetrics. Log at {}".format(project.name, project.revision, javametrics_log))
 
         return raw_results_dir
+
+    def can_normalize(self, path: str) -> bool:
+        return os.path.isfile(path)
 
     def normalize_results(self, raw_results_path: str, project: Project):
         all_metrics = []

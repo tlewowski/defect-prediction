@@ -65,6 +65,8 @@ class PMD(MetricsTool):
 
         return target_file
 
+    def can_normalize(self, path: str) -> bool:
+        return os.path.isfile(path)
     def normalize_results(self, raw_results_path: str, project: Project):
         print("PMD: extracting metrics for project: ", project.name, "from", raw_results_path)
         if not os.path.isfile(raw_results_path):

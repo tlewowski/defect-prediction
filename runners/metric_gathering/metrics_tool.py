@@ -37,6 +37,8 @@ class MetricsTool:
     def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         pass
 
+    def can_normalize(self, path: str) -> bool:
+        return False
     def normalize_results(self, raw_results_path: str, project: Project):
         pass
 
