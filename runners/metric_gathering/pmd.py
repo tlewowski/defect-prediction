@@ -66,7 +66,10 @@ class PMD(MetricsTool):
         return target_file
 
     def can_normalize(self, path: str) -> bool:
-        return os.path.isfile(path)
+        if not os.path.isfile(path):
+            print("PMD: cannot normalize results from", path, "because it's not a file")
+            return False
+        return True
     def normalize_results(self, raw_results_path: str, project: Project):
         print("PMD: extracting metrics for project: ", project.name, "from", raw_results_path)
         if not os.path.isfile(raw_results_path):
@@ -97,4 +100,4 @@ class PMD(MetricsTool):
         target_file = os.path.join(reports_path, "metrics.csv")
         self.print_final_metrics(target_file, all_metrics)
 
-        print("PMD: Extracted", len(all_metrics), "metrics from", len(files), "files (", results.getroot().tag, ")")
+        print("PMD: Extracted", len(all_metrics), "metrics from", len(files), "files (", results.getroot().tag, ") Final target:", target_file)

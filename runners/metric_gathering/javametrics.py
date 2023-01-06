@@ -37,12 +37,15 @@ class JavaMetrics(MetricsTool):
 
     @staticmethod
     def make_entity_name(items: list[str]) -> str:
-        assert len(items) == 5, "Expected 4 items, got: {}".format(items)
-        return "-/+/-".join(items)
+        assert len(items) == 5, "Expected 5 items, got: {}".format(items)
+        return ".".join([items[1], items[3]])
 
     @staticmethod
     def metrics_from_row(row: list[str], header: list[str]) -> list[MetricValue]:
         entity_name = JavaMetrics.make_entity_name(row[0:5])
+        if row[4] != "":
+            return []
+
         values = row[5:]
         names = header[5:]
         pairs = zip(names, values)
@@ -73,6 +76,9 @@ class JavaMetrics(MetricsTool):
             return None
 
         return filename
+
+    def target_file(self, dir):
+        return os.path.join(dir, "javametrics-out.csv")
     def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         raw_results_dir = self.context.metrics_wd(self, project)
 
@@ -91,7 +97,7 @@ class JavaMetrics(MetricsTool):
                 # each time, which is not exactly optimal, hence only project source
                 args.extend(["--filter", sample_list])
 
-            args.extend(["--output", os.path.join(raw_results_dir, "javametrics-out.csv")])
+            args.extend(["--output", self.target_file(raw_results_dir)])
 
             javametrics_log = os.path.join(self.context.logs_dir(project), "javametrics.log")
             print("JAVAMETRICS: running with:", args, "logs going to", javametrics_log)
@@ -102,15 +108,18 @@ class JavaMetrics(MetricsTool):
                     raise RuntimeError(
                         "Failed to analyze project {} at {} with JavaMetrics. Log at {}".format(project.name, project.revision, javametrics_log))
 
-        return raw_results_dir
+        return self.target_file(raw_results_dir)
 
     def can_normalize(self, path: str) -> bool:
-        return os.path.isfile(path)
+        if not os.path.isfile(path):
+            print("JAVAMETRICS: cannot normalize results from", path, "because it's not a file")
+            return False
+        return True
 
     def normalize_results(self, raw_results_path: str, project: Project):
         all_metrics = []
         with open(raw_results_path, mode='r', encoding="utf-8") as file:
-            result_reader = csv.reader(file, delimiter = ",")
+            result_reader = csv.reader(file, delimiter=",")
             headers = next(result_reader)
             for row in result_reader:
                 all_metrics.extend(JavaMetrics.metrics_from_row(row, headers))
@@ -119,4 +128,4 @@ class JavaMetrics(MetricsTool):
         target_file = os.path.join(reports_path, "metrics.csv")
         self.print_final_metrics(target_file, all_metrics)
 
-        print("JAVAMETRICS: Extracted", len(all_metrics), "metrics from", raw_results_path)
+        print("JAVAMETRICS: Extracted", len(all_metrics), "metrics from", raw_results_path, "final target:", target_file)

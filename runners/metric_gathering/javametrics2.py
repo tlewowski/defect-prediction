@@ -11,7 +11,7 @@ from metrics_tool import MetricsTool
 from project import Project
 
 def extract_package(class_file):
-    with open(class_file, mode="r") as f:
+    with open(class_file, mode="r", encoding="utf-8") as f:
         contents = f.read()
         found = re.search("package (.*);", contents)
         if not found is None:
@@ -31,23 +31,18 @@ def extract_class_name(class_file):
 
     return package, hopefully_class_name
 
-# Supported version is JavaMetrics Lite, not the full one
+
 class JavaMetrics2(MetricsTool):
     name = 'javametrics2'
 
     @staticmethod
-    def make_entity_name(items: list[str]) -> str:
-        assert len(items) == 5, "Expected 4 items, got: {}".format(items)
-        return "-/+/-".join(items)
-
-    @staticmethod
-    def metrics_from_row(row: list[str], header: list[str]) -> list[MetricValue]:
-        entity_name = JavaMetrics2.make_entity_name(row[0:5])
-        values = row[5:]
-        names = header[5:]
+    def metrics_from_row(class_lookup: dict[str, str], row: list[str], header: list[str]) -> list[MetricValue]:
+        entity_name = class_lookup[row[0]]
+        values = row[2:]
+        names = header[2:]
         pairs = zip(names, values)
 
-        return [MetricValue("JAVAMETRICS_{}".format(p[0]), entity_name, p[1]) for p in pairs]
+        return [MetricValue("JAVAMETRICS2_{}".format(p[0]), entity_name, p[1]) for p in pairs]
 
 
     def __init__(self, javametrics2_jar, context: IResearchContext):
@@ -77,6 +72,11 @@ class JavaMetrics2(MetricsTool):
             return None
 
         return filename
+
+    def class_metrics_location(self, raw_results_dir: str) -> str:
+        return os.path.join(raw_results_dir, "class_metrics.csv")
+
+
     def analyze(self, project: Project, only_paths: list[str] | None) -> str:
         raw_results_dir = self.context.metrics_wd(self, project)
 
@@ -105,11 +105,15 @@ class JavaMetrics2(MetricsTool):
                     raise RuntimeError(
                         "Failed to analyze project {} at {} with JavaMetrics2. Log at {}".format(project.name, project.revision, javametrics2_log))
 
-        return os.path.join(raw_results_dir, "class_metrics.csv")
+        return self.class_metrics_location(raw_results_dir)
 
 
     def can_normalize(self, path: str) -> bool:
-        return os.path.isfile(path)
+        if not os.path.isfile(path):
+            print("JAVAMETRICS2: cannot normalize results from", path, "because it's not a file")
+            return False
+        return True
+
     def normalize_results(self, raw_results_path: str, project: Project):
         all_metrics = []
 
@@ -117,14 +121,25 @@ class JavaMetrics2(MetricsTool):
             print("JAVAMETRICS2: No results for", project.name, "at", project.revision, ". Skipping", raw_results_path)
             return
 
-        with open(raw_results_path, mode='r', encoding="utf-8") as file:
-            result_reader = csv.reader(file, delimiter = ",")
+        sample_names_file = self.class_metrics_location(self.context.workspace(self, project))
+        if not os.path.isfile(sample_names_file):
+            print("JAVAMETRICS2: No sample names for", project.name, "at", project.revision, ". Path:", sample_names_file)
+
+        class_lookup = {}
+        with open(sample_names_file, mode="r", encoding="utf-8") as f:
+            result_reader = csv.reader(f, delimiter=",")
             headers = next(result_reader)
             for row in result_reader:
-                all_metrics.extend(JavaMetrics2.metrics_from_row(row, headers))
+                class_lookup[row[0]] = ".".join([row[2], row[4]])
+
+        with open(raw_results_path, mode='rb', encoding="utf-8") as file:
+            result_reader = csv.reader(file, delimiter=",")
+            headers = next(result_reader)
+            for row in result_reader:
+                all_metrics.extend(JavaMetrics2.metrics_from_row(class_lookup, row, headers))
 
         reports_path = self.context.reports_wd(self, project)
         target_file = os.path.join(reports_path, "metrics.csv")
         self.print_final_metrics(target_file, all_metrics)
 
-        print("JAVAMETRICS2: Extracted", len(all_metrics), "metrics from", raw_results_path)
+        print("JAVAMETRICS2: Extracted", len(all_metrics), "metrics from", raw_results_path, "final target:", target_file)
