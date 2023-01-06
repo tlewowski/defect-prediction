@@ -53,7 +53,7 @@ class JavaMetrics2(MetricsTool):
         self.context = context
 
     def make_sample_list(self, workspace: str, project: Project, only_paths: list[str]):
-        filename = os.path.join(workspace, "javametrics2_samples.csv")
+        filename = self.sample_names_location(workspace)
         repo_remote = Repo(project.src_path).remotes[0].url
 
         sample_id = 1
@@ -73,6 +73,8 @@ class JavaMetrics2(MetricsTool):
 
         return filename
 
+    def sample_names_location(self, dir: str) -> str:
+        return os.path.join(dir, "javametrics2_samples.csv")
     def class_metrics_location(self, raw_results_dir: str) -> str:
         return os.path.join(raw_results_dir, "class_metrics.csv")
 
@@ -121,7 +123,7 @@ class JavaMetrics2(MetricsTool):
             print("JAVAMETRICS2: No results for", project.name, "at", project.revision, ". Skipping", raw_results_path)
             return
 
-        sample_names_file = self.class_metrics_location(self.context.workspace(self, project))
+        sample_names_file = self.sample_names_location(self.context.workspace(self, project))
         if not os.path.isfile(sample_names_file):
             print("JAVAMETRICS2: No sample names for", project.name, "at", project.revision, ". Path:", sample_names_file)
 
@@ -132,7 +134,7 @@ class JavaMetrics2(MetricsTool):
             for row in result_reader:
                 class_lookup[row[0]] = ".".join([row[2], row[4]])
 
-        with open(raw_results_path, mode='rb', encoding="utf-8") as file:
+        with open(raw_results_path, mode='r', encoding="utf-8") as file:
             result_reader = csv.reader(file, delimiter=",")
             headers = next(result_reader)
             for row in result_reader:
