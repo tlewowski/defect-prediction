@@ -48,7 +48,7 @@ def get_commit_list(repo, args):
             raise RuntimeError("{} (--only_commits argument) should be a file containing commit SHA per line, but no such file found".format(args.only_commits))
 
         try:
-            with open(args.only_commits) as f:
+            with open(args.only_commits, mode='r', encoding="utf-8") as f:
                 candidates = f.readlines()
                 return [repo.commit(c.strip()) for c in candidates]
         except Exception as ex:

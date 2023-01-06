@@ -11,7 +11,7 @@ from metrics_tool import MetricsTool
 from project import Project
 
 def extract_package(class_file):
-    with open(class_file, "r") as f:
+    with open(class_file, mode="r") as f:
         contents = f.read()
         found = re.search("package (.*);", contents)
         if not found is None:
@@ -62,7 +62,7 @@ class JavaMetrics2(MetricsTool):
         repo_remote = Repo(project.src_path).remotes[0].url
 
         sample_id = 1
-        with open(filename, "w") as f:
+        with open(filename, mode="w", encoding="utf-8") as f:
             f.write("SAMPLE_ID,TYPE,PACKAGE,OUTER_CLASS,CLASS,METHOD,PARAMETERS,REPOSITORY,COMMIT_HASH,GIT_SOURCE_FILE_URL,START_LINE,END_LINE,PATH\n")
             for class_file in only_paths:
                 (package_name, class_name) = extract_class_name(class_file)
@@ -98,7 +98,7 @@ class JavaMetrics2(MetricsTool):
 
             javametrics2_log = os.path.join(self.context.logs_dir(project), "javametrics2.log")
             print("JAVAMETRICS2: running with:", args, "logs going to", javametrics2_log)
-            with open(javametrics2_log, "w") as log:
+            with open(javametrics2_log, mode="w", encoding="utf-8") as log:
                 proc = subprocess.run(args, cwd=project.src_path, stdout=log, stderr=log)
                 if proc.returncode.real != 0:
                     print("JAVAMETRICS2: failed to analyze", project.name, "at", project.revision, ". Log at", javametrics2_log)
@@ -117,7 +117,7 @@ class JavaMetrics2(MetricsTool):
             print("JAVAMETRICS2: No results for", project.name, "at", project.revision, ". Skipping", raw_results_path)
             return
 
-        with open(raw_results_path, 'r') as file:
+        with open(raw_results_path, mode='r', encoding="utf-8") as file:
             result_reader = csv.reader(file, delimiter = ",")
             headers = next(result_reader)
             for row in result_reader:

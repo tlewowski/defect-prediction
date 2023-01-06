@@ -36,7 +36,7 @@ class Maven(BuildTool):
         maven_log = os.path.join(self.context.logs_dir(project), "maven.log")
         print("MVN: building", project.name, "with", cmd, "logs going to", maven_log)
         start_ts = time.monotonic()
-        with open(maven_log, "w") as log:
+        with open(maven_log, mode="w", encoding="utf-8") as log:
             proc = subprocess.run(cmd, cwd=project.src_path, stdout=log, stderr=log)
             if proc.returncode.real != 0:
                 print("MVN: failed to build", project.name, "at", project.revision, ". Log at", maven_log)

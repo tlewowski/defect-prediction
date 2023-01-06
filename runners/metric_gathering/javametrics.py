@@ -11,7 +11,7 @@ from metrics_tool import MetricsTool
 from project import Project
 
 def extract_package(class_file):
-    with open(class_file, "r") as f:
+    with open(class_file, mode="r", encoding="utf-8") as f:
         contents = f.read()
         found = re.search("package (.*);", contents)
         if not found is None:
@@ -61,7 +61,7 @@ class JavaMetrics(MetricsTool):
         filename = os.path.join(workspace, "javametrics_sample_list.csv")
 
         sample_id = 1
-        with open(filename, "w") as f:
+        with open(filename, mode="w", encoding="utf-8") as f:
             f.write("file,package,class,method\n")
             for class_file in only_paths:
                 (package_name, class_name) = extract_class_name(class_file)
@@ -95,7 +95,7 @@ class JavaMetrics(MetricsTool):
 
             javametrics_log = os.path.join(self.context.logs_dir(project), "javametrics.log")
             print("JAVAMETRICS: running with:", args, "logs going to", javametrics_log)
-            with open(javametrics_log, "w") as log:
+            with open(javametrics_log, mode="w", encoding="utf-8") as log:
                 proc = subprocess.run(args, cwd=project.src_path, stdout=log, stderr=log)
                 if proc.returncode.real != 0:
                     print("JAVAMETRICS: failed to analyze", project.name, "at", project.revision, ". Log at", javametrics_log)
@@ -109,7 +109,7 @@ class JavaMetrics(MetricsTool):
 
     def normalize_results(self, raw_results_path: str, project: Project):
         all_metrics = []
-        with open(raw_results_path, 'r') as file:
+        with open(raw_results_path, mode='r', encoding="utf-8") as file:
             result_reader = csv.reader(file, delimiter = ",")
             headers = next(result_reader)
             for row in result_reader:

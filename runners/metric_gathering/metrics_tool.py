@@ -47,7 +47,7 @@ class MetricsTool:
         header, metrics = as_matrix(entries)
         metrics.sort(key=lambda e: e[0])
 
-        with open(target_path, 'w') as f:
+        with open(target_path, mode="w", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(header)
             writer.writerows(metrics)
@@ -55,7 +55,7 @@ class MetricsTool:
 
 def read_metrics_file(file: str) -> list[MetricValue]:
     metrics = []
-    with open(file, 'r') as f:
+    with open(file, mode='r', encoding="utf-8") as f:
         reader = csv.reader(f, delimiter=',')
 
         next(reader) # skip header

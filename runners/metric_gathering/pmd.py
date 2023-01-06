@@ -30,7 +30,7 @@ class PMD(MetricsTool):
 
     def make_file_list(self, target_dir: str, only_paths: list[str]):
         filename = os.path.join(target_dir, "pmd_analyze_list.txt")
-        with open(filename, "w") as f:
+        with open(filename, mode="w", encoding="utf-8") as f:
             for line in only_paths:
                 f.write(f"{line}\n")
         return filename
@@ -56,7 +56,7 @@ class PMD(MetricsTool):
 
             pmd_log = os.path.join(self.context.logs_dir(project), "pmd.log")
             print("PMD: running with:", cmd, "logs going to", pmd_log)
-            with open(pmd_log, "w") as log:
+            with open(pmd_log, mode="w", encoding="utf-8") as log:
                 proc = subprocess.run(cmd,cwd=project.src_path, stdout=log, stderr=log)
                 if proc.returncode.real != 0:
                     print("PMD: failed to analyze", project.name, "at", project.revision, ". Log at", pmd_log)

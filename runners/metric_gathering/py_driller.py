@@ -47,7 +47,7 @@ class PyDriller(MetricsTool):
 
                 target_file = os.path.join(target_dir, name + ".csv")
                 print("PYDRILL: Calculated", name, "for", project.name, "saving data to", target_file)
-                with(open(target_file, "w") as f):
+                with(open(target_file, mode="w", encoding="utf-8") as f):
                     writer = csv.writer(f)
                     allcols = ["{0}_{1}".format(name, c) for c in columns]
                     allcols.append("file")

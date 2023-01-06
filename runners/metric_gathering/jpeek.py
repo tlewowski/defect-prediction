@@ -44,7 +44,7 @@ class JPeek(MetricsTool):
 
             jpeek_log = os.path.join(self.context.logs_dir(project), "jpeek.log")
             print("JPEEK: running with:", args, "logs going to", jpeek_log)
-            with open(jpeek_log, "w") as log:
+            with open(jpeek_log, mode="w", encoding="utf-8") as log:
                 proc = subprocess.run(args, cwd=project.src_path, stdout=log, stderr=log)
                 if proc.returncode.real != 0:
                     print("JPEEK: failed to analyze", project.name, "at", project.revision, ". Log at", jpeek_log)
