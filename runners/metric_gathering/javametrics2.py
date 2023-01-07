@@ -11,7 +11,7 @@ from metrics_tool import MetricsTool
 from project import Project
 
 def extract_package(class_file):
-    with open(class_file, mode="r", encoding="utf-8") as f:
+    with open(class_file, mode="r", encoding="utf-8",errors="ignore") as f:
         contents = f.read()
         found = re.search("package (.*);", contents)
         if not found is None:
