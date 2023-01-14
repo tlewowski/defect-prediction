@@ -24,6 +24,8 @@ def multirun_parser():
     parser.add_argument("--only_changes", type=bool, help="Only gather metrics for changed files", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry_run", type=bool, help="Do not run analysis, only verify validity of Git parameters", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--start", type=str, help="First commit to analyze. Ignored if --only_commits is given", required=False)
+    parser.add_argument("--skip_missing_commits", type=bool, help="Do not fail the process if commit is not in the repository", action=argparse.BooleanOptionalAction, default=False)
+
 
     commit_range = parser.add_mutually_exclusive_group(required=True)
     commit_range.add_argument("--end", type=str, help="Last commit to analyze. Either this parameter or --only_commits must be given")
