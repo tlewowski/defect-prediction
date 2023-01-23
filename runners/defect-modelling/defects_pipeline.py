@@ -44,14 +44,14 @@ def run_ml_process(predictors, classes):
     pipeline = new_pipeline()
     predictors_train, predictors_test, classes_train, classes_test = train_test_split(predictors, classes, test_size=0.2, random_state=0, stratify=classes)
 
-    print("PIPELINE: Triggering training! Got", len(predictors_train), "entries for training and", len(classes_test), "entries for testing")
+    print("DEFECT_PIPELINE: Triggering training! Got", len(predictors_train), "entries for training and", len(classes_test), "entries for testing")
 
     calculation_start_time = time.monotonic()
     pipeline.fit(predictors_train, classes_train)
     calculation_end_time = time.monotonic()
 
     predictions = pipeline.predict(predictors_test)
-    print("Finished training in ",
+    print("DEFECT_PIPELINE: Finished training in ",
           humanize.naturaldelta(datetime.timedelta(seconds=calculation_end_time-calculation_start_time), minimum_unit="milliseconds"),
           ". F-score: ", metrics.f1_score(classes_test, predictions))
 
@@ -79,10 +79,10 @@ def run_as_main():
     args = prepare_args()
     input_file = os.path.abspath(args.input_data)
     data = load_input(input_file)
-    print("PIPELINE: Loaded data. Got", len(data.index), "entries from", input_file)
+    print("DEFECT_PIPELINE: Loaded data. Got", len(data.index), "entries from", input_file)
 
     predictors, predictions = select_relevant_rows_and_columns(data, args.metric_set, args.class_set)
-    print("PIPELINE: Using", args.metric_set, "as metrics and", args.class_set, "as classes. Got", len(predictions), "entries")
+    print("DEFECT_PIPELINE: Using", args.metric_set, "as metrics and", args.class_set, "as classes. Got", len(predictions), "entries")
     run_ml_process(predictors, predictions)
 
 if __name__ == '__main__':

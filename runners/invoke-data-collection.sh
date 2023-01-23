@@ -213,4 +213,7 @@ python metric_joining/project_joiner.py --metrics_root $(pwd)/reports/metrics/pm
 python metric_joining/project_joiner.py --metrics_root $(pwd)/reports/metrics/javametrics --target_file $(pwd)/reports/metrics/javametrics/complete_javametrics.csv
 python metric_joining/project_joiner.py --metrics_root $(pwd)/reports/metrics/javametrics2 --target_file $(pwd)/reports/metrics/javametrics2/complete_javametrics2.csv
 
+python metric_joining/project_joiner.py --metrics_root $(pwd)/smells/reports/metrics/javametrics2 --target_file $(pwd)/smells/reports/metrics/javametrics2/complete_javametrics2.csv
+python metric_joining/project_joiner.py --metrics_root $(pwd)/smells/reports/metrics/javametrics2 --target_file $(pwd)/smells/reports/metrics/javametrics2/complete_javametrics2.csv
+
 ## This is the end of initial data processing. All further operations are run in the modelling flow.

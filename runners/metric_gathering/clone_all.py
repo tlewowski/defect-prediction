@@ -44,18 +44,41 @@ def run_clone(args):
 
         if args.run_pmd is not None:
           pmd_args = single_run_parser().parse_args(
-            "--tool pmd --tool_path {} --project_path {} --wd_path {} --report_path {} --analyze --postprocess".format(
-              os.path.join(args.run_pmd), project_path, os.path.join(args.calculation_wd), os.path.join(args.report_path)
-            )
+            [
+              "--tool",
+              "pmd",
+              "--tool_path",
+              os.path.abspath(args.run_pmd),
+              "--project_path",
+              project_path,
+              "--wd_path",
+              os.path.abspath(args.calculation_wd),
+              "--report_path",
+              os.path.abspath(args.report_path),
+              "--analyze",
+              "--postprocess"
+            ]
           )
+
           print("CLONER: Running PMD with args: {}".format(pmd_args))
           single_run_with_args(pmd_args, None)
 
         if args.run_javametrics is not None:
           javametrics_args = single_run_parser().parse_args(
-            "--tool javametrics --tool_path {} --project_path {} --wd_path {} --report_path {} --analyze --postprocess".format(
-              os.path.join(args.run_javametrics), project_path, os.path.join(args.calculation_wd), os.path.join(args.report_path)
-            )
+            [
+              "--tool",
+              "javametrics",
+              "--tool_path",
+              os.path.abspath(args.run_javametrics),
+              "--project_path",
+              project_path,
+              "--wd_path",
+              os.path.abspath(args.calculation_wd),
+              "--report_path",
+              os.path.abspath(args.report_path),
+              "--analyze",
+              "--postprocess"
+            ]
           )
 
           print("CLONER: Running JavaMetrics with args: {}".format(pmd_args))
