@@ -6,6 +6,7 @@ import time
 import humanize
 import numpy
 import pandas as pd
+import skops.io
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 from sklearn.linear_model import RidgeClassifier
@@ -15,7 +16,8 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import Binarizer, StandardScaler
 from sklearn.cross_decomposition import PLSRegression
 
-from schema import METRIC_SETS
+from utils import cleanse
+from smell_schema import METRIC_SETS
 
 class PLSPreProc(PLSRegression):
     ''' Wrapper to allow PLSRegression to be used in the Pipeline Module '''
@@ -73,29 +75,13 @@ def run_ml_process(predictors, classes, rng):
         for i in range(len(predictions)):
             print("{}/{} -> {},".format("Y" if predictions[i] else "N", "Y" if classes_test[i] else "N", predictions[i] == classes_test[i]))
 
-
     print("SMELL_PIPELINE: Finished training in ",
           humanize.naturaldelta(datetime.timedelta(seconds=calculation_end_time-calculation_start_time), minimum_unit="milliseconds"),
           ". MCC: ", metrics.matthews_corrcoef(classes_test, predictions))
 
+    return pipeline
 
-def cleanse(data, smell, all_cols):
-    relevant_data = data[data["smell"] == smell].loc[:, all_cols]
 
-    print("SMELL_PIPELINE: Total of {} reviews for {}".format(len(relevant_data.index), smell))
-
-    if "PMD_TCC" in relevant_data:
-        # filling in for utility classes, that have no members
-        relevant_data["PMD_TCC"].fillna(2, inplace=True)
-    if "PMD_WOC" in relevant_data:
-        # filling in for utility classes that have no non-static methods
-        relevant_data["PMD_WOC"].fillna(2, inplace=True)
-
-#    relevant_data.fillna(5000, inplace=True)
-
-    dropped = relevant_data.dropna()
-    print("SMELL_PIPELINE: After dropping NAs, {} reviews left (up for grouping)".format(len(dropped.index)))
-    return dropped
 
 def select_relevant_rows_and_columns(data, metric_set, smell):
     all_cols = []
@@ -103,7 +89,7 @@ def select_relevant_rows_and_columns(data, metric_set, smell):
     all_cols.append("severity")
     all_cols.append("sample_id")
 
-    cleansed_data = cleanse(data, smell, all_cols)
+    cleansed_data = cleanse(data, all_cols)
     cleansed_data["severity"] = cleansed_data["severity"].transform(lambda x: SEVERITIES[x])
 
     aggregated_severity = cleansed_data.groupby("sample_id").median()
@@ -121,7 +107,16 @@ def run_as_main():
 
     predictors, predictions = select_relevant_rows_and_columns(data, args.metric_set, args.smell)
 
-    run_ml_process(predictors, predictions, numpy.random.RandomState(args.random_seed))
+    model = run_ml_process(predictors, predictions, numpy.random.RandomState(args.random_seed))
+    output = {
+        "model": model,
+        "smell": args.smell,
+        "metric_set": args.metric_set,
+        "name": "SMELL_" + os.path.basename(args.model_target)
+    }
+
+    print("SMELL_PIPELINE: Saving built pipeline to {}".format(args.model_target))
+    skops.io.dump(output, args.model_target)
 
 
 if __name__ == '__main__':

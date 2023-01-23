@@ -2,3 +2,6 @@ merged-defects
 defects
 
 apache-jit
+
+*.csv
+**/*.csv

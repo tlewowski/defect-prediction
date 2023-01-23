@@ -9,3 +9,6 @@ workspace
 
 workdir
 *.tar.gz
+
+
+*.csv
