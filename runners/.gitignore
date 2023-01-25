@@ -4,3 +4,5 @@ __pycache__
 venv
 *.skops
 !projects
+workdir
+*workdir*

@@ -5,3 +5,4 @@ apache-jit
 
 *.csv
 **/*.csv
+*
