@@ -22,7 +22,7 @@ def prepare_args():
     return parser.parse_args()
 
 
-def train_model(workspace, data_file, models_dir, smell, metric_set, index, seed):
+def cv_evaluate_model(workspace, data_file, models_dir, smell, metric_set, index, seed):
     model_workspace = os.path.join(workspace, "workdir", smell, metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
     model_target = os.path.join(models_dir, "{}_{}_{}.scops".format(smell, metric_set, str(index)))
@@ -31,30 +31,38 @@ def train_model(workspace, data_file, models_dir, smell, metric_set, index, seed
               "--metric_set", metric_set,
               "--workspace", model_workspace,
               "--model_target", model_target,
-              "--random_seed", str(seed)
+              "--random_seed", str(seed),
+              "--cv", str(10)
               ]
 
     print("SMELLS_EXPERIMENT: Building model nr {} for {} with {} data".format(index, smell, metric_set))
     return generate_smell_model(params)
 
-def torow(model):
-    total = model["performance_metrics"]["confusion_matrix"][0][0] + model["performance_metrics"]["confusion_matrix"][1][0] + model["performance_metrics"]["confusion_matrix"][0][1] + model["performance_metrics"]["confusion_matrix"][1][1]
+def torows(model, model_num):
+    total = model["performance_metrics"]["test_tp"][0] + \
+            model["performance_metrics"]["test_tn"][0] + \
+            model["performance_metrics"]["test_fp"][0] + \
+            model["performance_metrics"]["test_fn"][0]
 
-    return [
+    return [[
+        model_num,
         model["smell"],
         model["metric_set"],
         model["name"],
-        model["performance_metrics"]["mcc"],
-        model["performance_metrics"]["f1-score"],
-        model["performance_metrics"]["precision"],
-        model["performance_metrics"]["recall"],
-        model["performance_metrics"]["accuracy"],
-        model["performance_metrics"]["balanced_accuracy"],
-        model["performance_metrics"]["confusion_matrix"][0][0] / total,
-        model["performance_metrics"]["confusion_matrix"][0][1] / total,
-        model["performance_metrics"]["confusion_matrix"][1][0] / total,
-        model["performance_metrics"]["confusion_matrix"][1][1] / total
-    ]
+        i,
+        model["performance_metrics"]["test_mcc"][i],
+        model["performance_metrics"]["test_f1-score"][i],
+        model["performance_metrics"]["test_precision"][i],
+        model["performance_metrics"]["test_recall"][i],
+        model["performance_metrics"]["test_accuracy"][i],
+        model["performance_metrics"]["test_balanced_accuracy"][i],
+        model["performance_metrics"]["test_tp"][i] / total,
+        model["performance_metrics"]["test_fn"][i] / total,
+        model["performance_metrics"]["test_fp"][i] / total,
+        model["performance_metrics"]["test_tn"][i] / total,
+        model["performance_metrics"]["fit_time"][i] / total,
+        model["performance_metrics"]["score_time"][i] / total
+    ] for i in range(model["cv"])]
 
 def run_as_main():
     args = prepare_args()
@@ -68,14 +76,16 @@ def run_as_main():
         for s in EVALUATE_SMELLS:
             seed = random.randint(0, 2**32 - 1)
             for m in EVALUATE_METRIC_SETS:
-                all_models.append(train_model(args.workspace, args.data_file, models_dir, s, m, i, seed))
+                print("EXPERIMENT: Evaluating {} out of {}".format(i, args.model_count))
+                all_models.append(cv_evaluate_model(args.workspace, args.data_file, models_dir, s, m, i, seed))
 
     pd.DataFrame(
-        [torow(model) for model in all_models],
+        [row for model_num in range(len(all_models)) for row in torows(all_models[model_num], model_num)],
         columns=[
             "smell",
             "metric_set",
             "name",
+            "fold_num",
             "mcc",
             "f1",
             "precision",
@@ -85,10 +95,13 @@ def run_as_main():
             "tpr",
             "fnr",
             "fpr",
-            "fnr"
+            "fnr",
+            "fit_time",
+            "score_time"
         ]
     ).to_csv(os.path.join(args.workspace, "final_stats.csv"))
 
 
 if __name__ == '__main__':
     run_as_main()
+#%%

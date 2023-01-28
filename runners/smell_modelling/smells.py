@@ -4,6 +4,7 @@ import hashlib
 import os
 import sys
 import time
+from statistics import mean
 
 import humanize
 import numpy
@@ -11,13 +12,33 @@ import pandas as pd
 import skops.io
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import *
+from sklearn.model_selection import train_test_split, cross_val_score, cross_validate
 from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from utils import cleanse
 from smell_schema import METRIC_SETS
+
+def tp_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    cm = confusion_matrix(y, y_pred)
+    return cm[1, 1]
+def tn_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    cm = confusion_matrix(y, y_pred)
+    return cm[0, 0]
+
+def fp_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    cm = confusion_matrix(y, y_pred)
+    return cm[0, 1]
+
+def fn_scorer(clf, X, y):
+    y_pred = clf.predict(X)
+    cm = confusion_matrix(y, y_pred)
+    return cm[1, 0]
 
 def prepare_args(args):
     parser = argparse.ArgumentParser(
@@ -30,7 +51,7 @@ def prepare_args(args):
     parser.add_argument("--model_target", required=True, type=str, help="location where final model has to be put")
     parser.add_argument("--workspace", required=True, type=str, help="workspace location for temporary files")
     parser.add_argument("--random_seed", required=False, type=int, help="Random seed to use in the model building")
-    parser.add_argument("--test_size", required=False, type=float, help="Fraction of the whole data set to be used as test set", default=0.2)
+    parser.add_argument("--cv", required=False, type=int, help="Number of cross validation folds", default=10)
     return parser.parse_args(args)
 
 
@@ -47,46 +68,49 @@ def new_pipeline(rng):
         StandardScaler(),
         RandomForestClassifier(random_state=rng)
     )
-def run_ml_process(predictors, classes, rng, test_size):
+
+def train_model(pipeline, predictors, classes):
+    calculation_start_time = time.monotonic()
+    print("SMELL_PIPELINE: Triggering training! Got", len(predictors), "entries for training and", len(classes), "entries for testing")
+    pipeline.fit(predictors, classes)
+    calculation_end_time = time.monotonic()
+    print("SMELL_PIPELINE: Finished training in ",
+          humanize.naturaldelta(datetime.timedelta(seconds=calculation_end_time-calculation_start_time), minimum_unit="milliseconds"))
+
+    return pipeline
+
+
+def run_ml_process(predictors, classes, rng, cv):
     pipeline = new_pipeline(rng)
 
-    if test_size > 0:
-        predictors_train, predictors_test, classes_train, classes_test = train_test_split(predictors, classes, test_size=test_size, random_state=rng, stratify=classes)
-    else:
-        predictors_train = predictors
-        classes_train = classes
-        classes_test = []
-        predictors_test = []
+    if cv == 0:
+        return train_model(pipeline, predictors, classes), {}
 
-    print("SMELL_PIPELINE: Triggering training! Got", len(predictors_train), "entries for training and", len(classes_test), "entries for testing")
+    print("SMELL_PIPELINE: Triggering training with CV ({} folds)".format(cv))
+
+    scoring = {
+        "mcc": make_scorer(matthews_corrcoef),
+        "accuracy": make_scorer(accuracy_score),
+        "f1-score": make_scorer(f1_score),
+        "precision": make_scorer(precision_score),
+        "recall": make_scorer(recall_score),
+        "balanced_accuracy": make_scorer(balanced_accuracy_score),
+        "tp": tp_scorer,
+        "tn": tn_scorer,
+        "fp": fp_scorer,
+        "fn": fn_scorer
+    }
+
 
     calculation_start_time = time.monotonic()
-    pipeline.fit(predictors_train, classes_train)
+    results = cross_validate(pipeline, predictors, classes, cv=cv, scoring=scoring)
     calculation_end_time = time.monotonic()
 
-    performance_metrics = {}
-    if len(classes_test) > 0:
-        predictions = pipeline.predict(predictors_test)
-        if os.environ.get("SMELLS_PRINT_ALL_PREDICTIONS"):
-            for i in range(len(predictions)):
-                print("{}/{} -> {},".format("Y" if predictions[i] else "N", "Y" if classes_test[i] else "N", predictions[i] == classes_test[i]))
+    print("SMELL_PIPELINE: Finished CV in ",
+          humanize.naturaldelta(datetime.timedelta(seconds=calculation_end_time-calculation_start_time), minimum_unit="milliseconds"),
+          ". Mean MCC: ", mean(results["test_mcc"]))
 
-        print("SMELL_PIPELINE: Finished training in ",
-              humanize.naturaldelta(datetime.timedelta(seconds=calculation_end_time-calculation_start_time), minimum_unit="milliseconds"),
-              ". MCC: ", metrics.matthews_corrcoef(classes_test, predictions))
-
-        performance_metrics = {
-            "confusion_matrix": metrics.confusion_matrix(classes_test, predictions),
-            "mcc": metrics.matthews_corrcoef(classes_test, predictions),
-            "f1-score": metrics.f1_score(classes_test, predictions),
-            "precision": metrics.precision_score(classes_test, predictions),
-            "recall": metrics.recall_score(classes_test, predictions),
-            "accuracy": metrics.accuracy_score(classes_test, predictions),
-            "balanced_accuracy": metrics.balanced_accuracy_score(classes_test, predictions),
-            "predictions": predictions
-        }
-
-    return pipeline, performance_metrics
+    return None, results
 
 
 def select_relevant_rows_and_columns(data, metric_set, smell):
@@ -118,7 +142,7 @@ def run_with_args(args):
 
     predictors, predictions = select_relevant_rows_and_columns(data, args.metric_set, args.smell)
 
-    model, performance_metrics = run_ml_process(predictors, predictions, numpy.random.RandomState(args.random_seed), args.test_size)
+    model, performance_metrics = run_ml_process(predictors, predictions, numpy.random.RandomState(args.random_seed), args.cv)
     output = {
         "model": model,
         "smell": args.smell,
@@ -126,7 +150,7 @@ def run_with_args(args):
         "performance_metrics": performance_metrics,
         "name": "SMELL_" + os.path.basename(args.model_target),
         "seed": args.random_seed,
-        "test_size": args.test_size,
+        "cv": args.cv,
         "data_file": args.data_file,
         "data_file_sha256_checksum": datafile_checksum
     }
