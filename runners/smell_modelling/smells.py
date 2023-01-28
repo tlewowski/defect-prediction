@@ -95,7 +95,7 @@ def select_relevant_rows_and_columns(data, metric_set, smell):
     all_cols.append("severity")
     all_cols.append("sample_id")
 
-    cleansed_data = cleanse(data[data["smell"] == smell], all_cols)
+    cleansed_data = cleanse(data[data["smell"] == smell], all_cols, allow_drop=False)
     cleansed_data["severity"] = cleansed_data["severity"].transform(lambda x: SEVERITIES[x])
 
     aggregated_severity = cleansed_data.groupby("sample_id").median()

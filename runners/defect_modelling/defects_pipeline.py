@@ -21,6 +21,7 @@ from sklearn.svm import SVC
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_frame
+from smell_modelling.utils import cleanse
 
 
 def prepare_args():
@@ -74,7 +75,7 @@ def select_relevant_rows_and_columns(data, metric_set, class_set):
     # FIXME: what if there are is a missing metric for all entries for a given commit? Whole commit will be skipped now
     # also, remove non-unique entries, e.g. if only commit metrics are used
     # that's important, because otherwise it'll affect performance calculations
-    data_with_metrics = data.loc[:, all_cols].dropna().drop_duplicates()
+    data_with_metrics = cleanse(data, all_cols).drop_duplicates()
 
     predictors = data_with_metrics.loc[:, METRIC_SETS[metric_set]]
     predictions = data_with_metrics.loc[:, CLASS_SETS[class_set]].values.ravel()
