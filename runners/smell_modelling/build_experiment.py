@@ -1,8 +1,11 @@
 import argparse
+import datetime
 import os
 import random
 
+import humanize
 import pandas as pd
+import time
 
 from smells import run_with_args as generate_smell_model
 
@@ -25,8 +28,8 @@ def prepare_args():
 def cv_evaluate_model(workspace, data_file, models_dir, smell, metric_set, index, seed):
     model_workspace = os.path.join(workspace, "workdir", smell, metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
-    model_target = os.path.join(models_dir, "{}_{}_{}.scops".format(smell, metric_set, str(index)))
-    params = ["--data_file", data_file,
+    model_target = os.path.abspath(os.path.join(models_dir, "{}_{}_{}.scops".format(smell, metric_set, str(index))))
+    params = ["--data_file", os.path.abspath(data_file),
               "--smell", smell,
               "--metric_set", metric_set,
               "--workspace", model_workspace,
@@ -72,16 +75,25 @@ def run_as_main():
     os.makedirs(models_dir, exist_ok=True)
 
     all_models = []
+    start_time = time.monotonic()
     for i in range(args.model_count):
+        iteration_start_time = time.monotonic()
         for s in EVALUATE_SMELLS:
             seed = random.randint(0, 2**32 - 1)
             for m in EVALUATE_METRIC_SETS:
-                print("EXPERIMENT: Evaluating {} out of {}".format(i, args.model_count))
+                print("SMELLS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
                 all_models.append(cv_evaluate_model(args.workspace, args.data_file, models_dir, s, m, i, seed))
+        iteration_end_time = time.monotonic()
+        print("SMELLS_EXPERIMENT: Time taken - iteration {}:".format(i + 1), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
+              "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - start_time), minimum_unit="milliseconds"),
+              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i +1 )), minimum_unit="milliseconds")
+        )
 
+    full_frame_location = os.path.abspath(os.path.join(args.workspace, "final_stats.csv"))
     pd.DataFrame(
         [row for model_num in range(len(all_models)) for row in torows(all_models[model_num], model_num)],
         columns=[
+            "model_num",
             "smell",
             "metric_set",
             "name",
@@ -99,7 +111,9 @@ def run_as_main():
             "fit_time",
             "score_time"
         ]
-    ).to_csv(os.path.join(args.workspace, "final_stats.csv"))
+    ).to_csv(full_frame_location)
+
+    print("SMELLS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds = time.monotonic() - start_time)), full_frame_location))
 
 
 if __name__ == '__main__':
