@@ -94,8 +94,10 @@ def test_ml_pipeline(pipeline, test_data, metric_set, class_set):
 
 
 def load_input(input_file):
-    return pd.read_csv(input_file, sep=",")
+    data = pd.read_csv(input_file, sep=",")
 
+    # Removing, because entries for Hadoop are broken
+    return data[data["project"] != "hadoop"]
 
 def select_relevant_columns(data, metric_set, class_set):
     all_cols = []

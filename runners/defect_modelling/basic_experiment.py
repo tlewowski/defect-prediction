@@ -10,8 +10,8 @@ import time
 from defects_pipeline import run_with_args as generate_defect_model
 
 EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric']
-
-
+TRAINING_FRACTION = 0.8
+CLASS_SET = "defects"
 def prepare_args():
     parser = argparse.ArgumentParser(
         prog="defect-model-experiment",
@@ -21,24 +21,35 @@ def prepare_args():
     parser.add_argument("--workspace", required=True, type=str, help="workspace location for temporary files")
     parser.add_argument("--random_seed", required=False, type=int, help="Random seed to use in the model building")
     parser.add_argument("--model_count", required=True, type=int, help="How many models to generate per metric set")
+    parser.add_argument("--smell_models", required=False, help="paths to all code smell models that are supposed to be predictors", nargs="*", type=str)
 
     return parser.parse_args()
 
 
-def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed):
+def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed, smell_models):
     model_workspace = os.path.join(workspace, "workdir", metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
-    model_target = os.path.abspath(os.path.join(models_dir, "{}_{}_{}.scops".format(smell, metric_set, str(index))))
-    params = ["--data_file", os.path.abspath(data_file),
+    model_target = os.path.abspath(
+        os.path.join(
+            models_dir,
+            "{}_{}_{}.scops".format(metric_set, "smells" if len(smell_models) > 0 else "nosmells", str(index))
+        )
+    )
+
+    params = ["--input_data", os.path.abspath(data_file),
               "--metric_set", metric_set,
-              "--workspace", model_workspace,
+              "--class_set", CLASS_SET,
               "--model_target", model_target,
               "--random_seed", str(seed),
-              "--cv", str(10)
+              "--training_fraction", TRAINING_FRACTION
               ]
 
-    print("SMELLS_EXPERIMENT: Building model nr {} for {} with {} data".format(index, smell, metric_set))
-    return generate_smell_model(params)
+    if len(smell_models) > 0:
+        params.append("--smell_models")
+        params.extend(smell_models)
+
+    print("SMELLS_EXPERIMENT: Building model nr {} with {} from {} data".format(index, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
+    return generate_defect_model(params)
 
 def torows(model, model_num):
 
@@ -95,12 +106,13 @@ def run_as_main():
         print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
         for m in EVALUATE_METRIC_SETS:
             print("DEFECTS_EXPERIMENT: Evaluating {}".format(m))
-            all_models.append(evaluate_model(args.workspace, args.data_file, models_dir, m, i, seed))
+            all_models.append(evaluate_model(args.workspace, args.data_file, models_dir, m, i, seed, []))
+            all_models.append(evaluate_model(args.workspace, args.data_file, models_dir, m, i, seed, args.smell_models))
 
         iteration_end_time = time.monotonic()
         print("DEFECTS_EXPERIMENT: Time taken - iteration {}:".format(i + 1), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
               "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - start_time), minimum_unit="milliseconds"),
-              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i +1 )), minimum_unit="milliseconds")
+              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i + 1)), minimum_unit="milliseconds")
               )
 
     full_frame_location = os.path.abspath(os.path.join(args.workspace, "final_defects_stats.csv"))
