@@ -107,7 +107,7 @@ def run_as_main():
             "tpr",
             "fnr",
             "fpr",
-            "fnr",
+            "tnr",
             "fit_time",
             "score_time"
         ]
