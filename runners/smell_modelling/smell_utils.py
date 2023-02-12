@@ -1,11 +1,8 @@
 import pandas as pd
 from smell_schema import METRIC_SETS
 
-
-def cleanse(data, all_cols, allow_drop=True):
-    relevant_data = data.loc[:, all_cols]
-
-    print("SMELL_UTILS: Cleansing for a total of {} entries.".format(len(relevant_data.index)))
+def impute_data(data):
+    print("SMELL_UTILS: Imputing for a total of {} entries.".format(len(data.index)))
 
     # fields that are missing values in this analysis are not errors or data that could not be accessed
     # but rather items, that don't make sense for a particular class-like item (interface etc.)
@@ -22,15 +19,20 @@ def cleanse(data, all_cols, allow_drop=True):
     # NOAM - interfaces that cannot have public attributes, so no accessors either
     # WMC - interfaces that have no implementations, so total weight is 0
     # CLASS_FAN_OUT - interfaces that cannot have implementations, so no method-level depedencies
-
     for metric in METRIC_SETS['pmd']:
-        if metric in relevant_data:
-            relevant_data[metric] = relevant_data[metric].apply(lambda x: x + 1 if not pd.isna(x) else 0)
+        if metric in data:
+            data[metric] = data[metric].apply(lambda x: x + 1 if not pd.isna(x) else 0)
 
     for metric in METRIC_SETS['javametrics-numeric']:
-        if metric in relevant_data:
-            relevant_data[metric] = relevant_data[metric].apply(lambda x: x + 1 if not pd.isna(x) else 0)
+        if metric in data:
+            data[metric] = data[metric].apply(lambda x: x + 1 if not pd.isna(x) else 0)
 
+    return data
+
+
+def cleanse(data, all_cols, allow_drop=True):
+    print("SMELL_UTILS: Cleansing for a total of {} entries.".format(len(data.index)))
+    relevant_data = impute_data(data.loc[:, all_cols])
     dropped = relevant_data.dropna()
     print("SMELL_UTILS: After dropping NAs, {} reviews/samples left".format(len(dropped.index)))
     if len(relevant_data.index) != len(dropped.index):

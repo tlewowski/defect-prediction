@@ -10,6 +10,7 @@ import time
 from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set
 
 EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric']
+EVALUATE_MODEL_TYPES = ['basic-linear-ridge']
 TRAINING_FRACTION = 0.8
 CLASS_SET = "defects"
 def prepare_args():
@@ -26,13 +27,13 @@ def prepare_args():
     return parser.parse_args()
 
 
-def evaluate_model(workspace, data, datafile_checksum, models_dir, metric_set, index, seed, smell_models):
+def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, metric_set, index, seed, smell_models):
     model_workspace = os.path.join(workspace, "workdir", metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
     model_target = os.path.abspath(
         os.path.join(
             models_dir,
-            "{}_{}_{}.scops".format(metric_set, "smells" if len(smell_models) > 0 else "nosmells", str(index))
+            "{}_{}_{}_{}.scops".format(model_type, metric_set, "smells" if len(smell_models) > 0 else "nosmells", str(index))
         )
     )
 
@@ -40,6 +41,7 @@ def evaluate_model(workspace, data, datafile_checksum, models_dir, metric_set, i
               "--metric_set", metric_set,
               "--class_set", CLASS_SET,
               "--model_target", model_target,
+              "--model_type", model_type,
               "--random_seed", str(seed),
               "--training_fraction", str(TRAINING_FRACTION)
               ]
@@ -65,6 +67,7 @@ def torow(model):
     return [
         model["metric_set"],
         model["name"],
+        model["model_type"],
         model["scores"]["real"]["mcc"],
         model["scores"]["real"]["f1-score"],
         model["scores"]["real"]["precision"],
@@ -110,10 +113,11 @@ def run_as_main():
         iteration_start_time = time.monotonic()
         seed = random.randint(0, 2**32 - 1)
         print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
-        for m in EVALUATE_METRIC_SETS:
-            print("DEFECTS_EXPERIMENT: Evaluating {}".format(m))
-            all_models.append(evaluate_model(args.workspace, data, datafile_checksum, models_dir, m, i, seed, []))
-            all_models.append(evaluate_model(args.workspace, data, datafile_checksum, models_dir, m, i, seed, args.smell_models))
+        for metric_set in EVALUATE_METRIC_SETS:
+            for model_type in EVALUATE_MODEL_TYPES:
+                print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}'".format(model_type, metric_set))
+                all_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
+                all_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
 
         iteration_end_time = time.monotonic()
         print("DEFECTS_EXPERIMENT: Time taken - iteration {}:".format(i + 1), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
@@ -127,6 +131,7 @@ def run_as_main():
         columns=[
             "metric_set",
             "name",
+            "model_type",
             "real_mcc",
             "real_f1",
             "real_precision",
@@ -153,9 +158,9 @@ def run_as_main():
             "test_time_sec",
             "preparation_time_sec"
         ]
-    ).to_csv(full_frame_location)
+    ).to_csv(full_frame_location, index_label=["model_num"])
 
-    print("DEFECTS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds = time.monotonic() - start_time)), full_frame_location))
+    print("DEFECTS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - start_time)), full_frame_location))
 
 
 if __name__ == '__main__':

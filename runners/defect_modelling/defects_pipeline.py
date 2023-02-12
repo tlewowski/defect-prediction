@@ -18,8 +18,17 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from defect_schema import METRIC_SETS, CLASS_SETS
-from smell_modelling.evaluate import evaluate_frame
+from smell_modelling.evaluate import evaluate_on_data, select_columns
 from defect_utils import cleanse
+from smell_modelling.smell_utils import impute_data
+
+AVAILABLE_PIPELINES = {
+    "basic-linear-ridge": lambda rng: make_pipeline(
+        PCA(),
+        StandardScaler(),
+        RidgeClassifier()
+    )
+}
 
 def prepare_args(cmd_args):
     parser = argparse.ArgumentParser(
@@ -33,20 +42,17 @@ def prepare_args(cmd_args):
     parser.add_argument("--random_seed", required=False, type=int, help="random seed to use in the model building")
     parser.add_argument("--training_fraction", required=False, type=float, help="fraction of data set to be used in training", default=0.8)
     parser.add_argument("--model_target", required=False, type=str, help="location where model will be saved")
+    parser.add_argument("--model_type", required=True, type=str, help="which pipeline to use for modelling", choices=AVAILABLE_PIPELINES.keys())
 
     return parser.parse_args(cmd_args)
 
-def new_pipeline():
-    return make_pipeline(
-        PCA(),
-        StandardScaler(),
-        RidgeClassifier()
-    )
+def new_pipeline(model_type, rng):
+    return AVAILABLE_PIPELINES[model_type](rng)
 
-def run_ml_process(predictors, classes, rng):
-    pipeline = new_pipeline()
+def run_ml_process(predictors, classes, model_type, rng):
+    pipeline = new_pipeline(model_type, rng)
 
-    print("DEFECT_PIPELINE: Triggering training! Got", len(predictors), "entries for training")
+    print("DEFECT_PIPELINE: Triggering training for ", model_type, ".Got", len(predictors), "entries for training")
 
     calculation_start_time = time.monotonic()
     pipeline.fit(predictors, classes)
@@ -115,7 +121,8 @@ def select_relevant_columns(data, metric_set, class_set, allow_drop=True):
 
 
 def calculate_smells(data, smell_models):
-    results = [evaluate_frame(data, skops.io.load(model, trusted=True)) for model in smell_models]
+    prepared_data = impute_data(data)
+    results = [evaluate_on_data(prepared_data, skops.io.load(model, trusted=True)) for model in smell_models]
     return functools.reduce(lambda l, r: l.join(r, how="outer"), results).sort_index()
 
 
@@ -170,7 +177,7 @@ def run_on_data(cmd_args, data, datafile_checksum):
     fitting_start_ts = time.monotonic()
     print("DEFECT_PIPELINE: ML pipeline will be triggered with {} samples from {} revisions for training. Using predictor columns: {} for predicting {}"
           .format(len(training_data.index), len(training_revisions.index), metric_set, class_set))
-    pipeline = run_ml_process(training_data.loc[:, metric_set], training_data.loc[:, class_set].values.ravel(), random.randint(0, 2**32 - 1))
+    pipeline = run_ml_process(training_data.loc[:, metric_set], training_data.loc[:, class_set].values.ravel(), args.model_type, random.randint(0, 2**32 - 1))
 
     print("DEFECT_PIPELINE: Testing will be executed with {} samples from {} revisions".format(len(testing_data.index), len(testing_revisions.index)))
 
@@ -182,6 +189,7 @@ def run_on_data(cmd_args, data, datafile_checksum):
     output = {
         "scores": scores,
         "model": pipeline,
+        "model_type": args.model_type,
         "metric_set": args.metric_set,
         "class_set": args.class_set,
         "name": "DEFECTS_" + os.path.basename(args.model_target or "UNNAMED"),
