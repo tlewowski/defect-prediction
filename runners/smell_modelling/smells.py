@@ -18,7 +18,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from utils import cleanse
+from smell_utils import cleanse
 from smell_schema import METRIC_SETS
 
 def tp_scorer(clf, X, y):

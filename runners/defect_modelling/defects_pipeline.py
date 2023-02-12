@@ -19,7 +19,7 @@ from sklearn.preprocessing import StandardScaler
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_frame
-from utils import cleanse
+from defect_utils import cleanse
 
 def prepare_args(cmd_args):
     parser = argparse.ArgumentParser(
@@ -29,7 +29,7 @@ def prepare_args(cmd_args):
     parser.add_argument("--data_file", required=True, help="file with defects, class and commit metrics", type=str)
     parser.add_argument("--metric_set", required=True, help="which set of metrics shall be used for prediction", choices=METRIC_SETS.keys())
     parser.add_argument("--class_set", required=True, help="which features shall be treated as the class columns", choices=CLASS_SETS.keys())
-    parser.add_argument("--smell_models", required=False, help="paths to all code smell models that are supposed to be predictors", nargs="*", type=str)
+    parser.add_argument("--smell_models", required=False, help="paths to all code smell models that are supposed to be predictors", nargs="*", type=str, default=[])
     parser.add_argument("--random_seed", required=False, type=int, help="random seed to use in the model building")
     parser.add_argument("--training_fraction", required=False, type=float, help="fraction of data set to be used in training", default=0.8)
     parser.add_argument("--model_target", required=False, type=str, help="location where model will be saved")
@@ -46,7 +46,7 @@ def new_pipeline():
 def run_ml_process(predictors, classes, rng):
     pipeline = new_pipeline()
 
-    print("DEFECT_PIPELINE: Triggering training! Got", len(predictors), "entries for training and", len(classes), "entries for testing")
+    print("DEFECT_PIPELINE: Triggering training! Got", len(predictors), "entries for training")
 
     calculation_start_time = time.monotonic()
     pipeline.fit(predictors, classes)
@@ -90,22 +90,28 @@ def test_ml_pipeline(pipeline, test_data, metric_set, class_set):
         "fake": fake_scores
     }
 
-
-
-
 def load_input(input_file):
     data = pd.read_csv(input_file, sep=",")
 
     # Removing, because entries for Hadoop are broken - none are marked as "buggy"
     return data[data["project"] != "hadoop"]
 
-def select_relevant_columns(data, metric_set, class_set):
+def select_relevant_columns(data, metric_set, class_set, allow_drop=True):
     all_cols = []
     all_cols.extend(metric_set)
     all_cols.extend(class_set)
     all_cols.append("revision")
 
-    return cleanse(data, all_cols).drop_duplicates()
+    selected = data.loc[:, all_cols]
+    dropped = selected.dropna()
+    print("DEFECT_UTILS: After dropping NAs, {} reviews/samples left (from {} initially)".format(len(dropped.index), len(selected.index)))
+    if len(selected.index) != len(dropped.index):
+        print("DEFEFCT_UTILS: !!!! Warning! Detected N/A samples! If they are not dropped later on, results may be surprising! Initial:{}, final: {}".format(len(selected.index), len(dropped.index)))
+        if not allow_drop:
+            raise Exception("Some samples were dropped at preprocessing, but dropping was not allowed")
+
+
+    return dropped.drop_duplicates()
 
 
 def calculate_smells(data, smell_models):
@@ -123,31 +129,38 @@ def train_test_commit_split(data, class_set, train_ratio, random_state):
     print("DEFECT_PIPELINE: After split from", len(revision_data.index),"got", len(train_revisions.index), "samples for training and", len(test_revisions.index), "samples for training")
     return train_revisions, test_revisions
 
-
-def run_with_args(cmd_args):
+def prepare_data_set(data_file, smell_models):
     preparation_start_ts = time.monotonic()
-    args = prepare_args(cmd_args)
-    input_file = os.path.abspath(args.data_file)
+    input_file = os.path.abspath(data_file)
     data = load_input(input_file)
 
+    with open(data_file, "rb") as f:
+        datafile_checksum = hashlib.sha256(f.read()).hexdigest()
+
+    smell_adding_start_ts = time.monotonic()
+    print("DEFECT_PIPELINE_PREP: Loaded data. Got", len(data.index), "entries from", input_file, "in", humanize.naturaldelta(datetime.timedelta(seconds=smell_adding_start_ts-preparation_start_ts), minimum_unit="milliseconds"))
+    if smell_models:
+        smell_predictors = calculate_smells(data, smell_models)
+        data = data.join(smell_predictors)
+        print("DEFECT_PIPELINE_PREP: Added data from {} smell models: {}. Took: {}".format(
+            len(smell_models),
+            smell_predictors.columns.values.tolist(),
+            humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic()-smell_adding_start_ts), minimum_unit="milliseconds"))
+        )
+
+    print("DEFECT_PIPELINE_PREP: Finished basic data preparation in", humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic()-preparation_start_ts), minimum_unit="milliseconds"))
+    return cleanse(data), datafile_checksum
+
+def run_on_data(cmd_args, data, datafile_checksum):
+    preparation_start_ts = time.monotonic()
+    args = prepare_args(cmd_args)
+    print("DEFECT_PIPELINE: Running with", len(data.index), "entries")
     if args.random_seed is not None:
         random.seed(args.random_seed)
 
-    with open(args.data_file, "rb") as f:
-        datafile_checksum = hashlib.sha256(f.read()).hexdigest()
-
-    print("DEFECT_PIPELINE: Loaded data. Got", len(data.index), "entries from", input_file)
-
     metric_set = METRIC_SETS[args.metric_set].copy()
     class_set = CLASS_SETS[args.class_set].copy()
-
-    if args.smell_models:
-        smell_predictors = calculate_smells(data, args.smell_models)
-        print("DEFECT_PIPELINE: Adding data from {} smell models: {}".format(len(args.smell_models), smell_predictors.columns.values.tolist()))
-        data = data.join(smell_predictors)
-
-    metric_set.extend([col for col in data.columns.values.ravel() if col.startswith("SMELL_")])
-
+    metric_set.extend([col for col in data.columns.values.ravel() if col.startswith("SMELL_") and len(args.smell_models) > 0])
     relevant_data = select_relevant_columns(data, metric_set, class_set)
 
     training_revisions, testing_revisions = train_test_commit_split(data, class_set, args.training_fraction, random.randint(0, 2**32 - 1))
@@ -176,9 +189,9 @@ def run_with_args(cmd_args):
         "data_file": args.data_file,
         "data_file_sha256_checksum": datafile_checksum,
         "smell_models": args.smell_models,
-        "fit_time_ms": testing_start_ts - fitting_start_ts,
-        "preparation_time_ms": fitting_start_ts - preparation_start_ts,
-        "test_time_ms": process_end_ts - testing_start_ts
+        "fit_time_sec": testing_start_ts - fitting_start_ts,
+        "preparation_time_sec": fitting_start_ts - preparation_start_ts,
+        "test_time_sec": process_end_ts - testing_start_ts
     }
 
     if args.model_target is not None:
@@ -186,6 +199,10 @@ def run_with_args(cmd_args):
 
     return output
 
+def run_with_args(cmd_args):
+    args = prepare_args(cmd_args)
+    data, datafile_checksum = prepare_data_set(args.data_file, args.smell_models)
+    run_on_data(cmd_args, data, datafile_checksum)
 
 def run_as_main():
     run_with_args(sys.argv[1:])

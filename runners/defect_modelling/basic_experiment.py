@@ -7,7 +7,7 @@ import humanize
 import pandas as pd
 import time
 
-from defects_pipeline import run_with_args as generate_defect_model
+from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set
 
 EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric']
 TRAINING_FRACTION = 0.8
@@ -17,7 +17,7 @@ def prepare_args():
         prog="defect-model-experiment",
         description="Build defect models"
     )
-    parser.add_argument("--data_file", required=True, type=str, help="")
+    parser.add_argument("--data_file", required=True, type=str, help="main data file with predictors")
     parser.add_argument("--workspace", required=True, type=str, help="workspace location for temporary files")
     parser.add_argument("--random_seed", required=False, type=int, help="Random seed to use in the model building")
     parser.add_argument("--model_count", required=True, type=int, help="How many models to generate per metric set")
@@ -26,7 +26,7 @@ def prepare_args():
     return parser.parse_args()
 
 
-def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed, smell_models):
+def evaluate_model(workspace, data, datafile_checksum, models_dir, metric_set, index, seed, smell_models):
     model_workspace = os.path.join(workspace, "workdir", metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
     model_target = os.path.abspath(
@@ -36,7 +36,7 @@ def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed, sm
         )
     )
 
-    params = ["--data_file", os.path.abspath(data_file),
+    params = ["--data_file", "NOT_USED_PASSED_DIRECTLY",
               "--metric_set", metric_set,
               "--class_set", CLASS_SET,
               "--model_target", model_target,
@@ -48,10 +48,10 @@ def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed, sm
         params.append("--smell_models")
         params.extend(smell_models)
 
-    print("DEFECTS_EXPERIMENT: Building model nr {} with {} from {} data".format(index, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
-    return generate_defect_model(params)
+    print("DEFECTS_EXPERIMENT: Building model nr {} with {} from {} data".format(index + 1, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
+    return generate_defect_model(params, data, datafile_checksum)
 
-def torows(model, model_num):
+def torow(model):
 
     real_total = model["scores"]["real"]["tp"] + \
                  model["scores"]["real"]["tn"] + \
@@ -63,7 +63,6 @@ def torows(model, model_num):
                  model["scores"]["fake"]["fn"]
 
     return [
-        model_num,
         model["metric_set"],
         model["name"],
         model["scores"]["real"]["mcc"],
@@ -76,6 +75,7 @@ def torows(model, model_num):
         model["scores"]["real"]["fn"] / real_total,
         model["scores"]["real"]["fp"] / real_total,
         model["scores"]["real"]["tn"] / real_total,
+        real_total,
         model["scores"]["fake"]["mcc"],
         model["scores"]["fake"]["f1-score"],
         model["scores"]["fake"]["precision"],
@@ -86,9 +86,10 @@ def torows(model, model_num):
         model["scores"]["fake"]["fn"] / fake_total,
         model["scores"]["fake"]["fp"] / fake_total,
         model["scores"]["fake"]["tn"] / fake_total,
-        model["fit_time_ms"],
-        model["test_time_ms"],
-        model["preparation_time_ms"]
+        fake_total,
+        model["fit_time_sec"],
+        model["test_time_sec"],
+        model["preparation_time_sec"]
     ]
 
 def run_as_main():
@@ -98,6 +99,11 @@ def run_as_main():
     models_dir = os.path.join(args.workspace, "models")
     os.makedirs(models_dir, exist_ok=True)
 
+    prep_time_start_ts = time.monotonic()
+    data, datafile_checksum = prepare_data_set(args.data_file, args.smell_models)
+    prep_time_end_ts = time.monotonic()
+    print("DEFECTS_EXPERIMENT: Prepared data for further processing in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=prep_time_end_ts - prep_time_start_ts), minimum_unit="milliseconds")))
+
     all_models = []
     start_time = time.monotonic()
     for i in range(args.model_count):
@@ -106,8 +112,8 @@ def run_as_main():
         print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
         for m in EVALUATE_METRIC_SETS:
             print("DEFECTS_EXPERIMENT: Evaluating {}".format(m))
-            all_models.append(evaluate_model(args.workspace, args.data_file, models_dir, m, i, seed, []))
-            all_models.append(evaluate_model(args.workspace, args.data_file, models_dir, m, i, seed, args.smell_models))
+            all_models.append(evaluate_model(args.workspace, data, datafile_checksum, models_dir, m, i, seed, []))
+            all_models.append(evaluate_model(args.workspace, data, datafile_checksum, models_dir, m, i, seed, args.smell_models))
 
         iteration_end_time = time.monotonic()
         print("DEFECTS_EXPERIMENT: Time taken - iteration {}:".format(i + 1), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
@@ -117,9 +123,8 @@ def run_as_main():
 
     full_frame_location = os.path.abspath(os.path.join(args.workspace, "final_defects_stats.csv"))
     pd.DataFrame(
-        [row for model_num in range(len(all_models)) for row in torows(all_models[model_num], model_num)],
+        [torow(all_models[model_num]) for model_num in range(len(all_models))],
         columns=[
-            "model_num",
             "metric_set",
             "name",
             "real_mcc",
@@ -144,9 +149,9 @@ def run_as_main():
             "fake_fpr",
             "fake_tnr",
             "fake_total",
-            "fit_time_ms",
-            "test_time_ms",
-            "preparation_time_ms"
+            "fit_time_sec",
+            "test_time_sec",
+            "preparation_time_sec"
         ]
     ).to_csv(full_frame_location)
 
