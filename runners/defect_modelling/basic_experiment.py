@@ -7,11 +7,10 @@ import humanize
 import pandas as pd
 import time
 
-from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set
+from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set, AVAILABLE_PIPELINES
 
-EVALUATE_METRIC_SETS = ["none"]
-#EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric', "none"]
-EVALUATE_MODEL_TYPES = ['basic-linear-ridge']
+EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric', "none"]
+EVALUATE_MODEL_TYPES = AVAILABLE_PIPELINES.keys()
 TRAINING_FRACTION = 0.8
 CLASS_SET = "defects"
 def prepare_args():
@@ -70,6 +69,7 @@ def torow(model):
         model["metric_set"],
         model["name"],
         model["model_type"],
+        len(model["smell_models"]) > 0,
         model["scores"]["real"]["mcc"],
         model["scores"]["real"]["f1-score"],
         model["scores"]["real"]["precision"],
@@ -125,7 +125,7 @@ def run_as_main():
                 all_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
 
         iteration_end_time = time.monotonic()
-        print("DEFECTS_EXPERIMENT: Time taken - iteration {}:".format(i + 1), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
+        print("DEFECTS_EXPERIMENT: Time taken - iteration {}/{}:".format(i + 1, args.model_count), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
               "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - start_time), minimum_unit="milliseconds"),
               "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i + 1)), minimum_unit="milliseconds")
               )
@@ -137,6 +137,7 @@ def run_as_main():
             "metric_set",
             "name",
             "model_type",
+            "smell_models",
             "real_mcc",
             "real_f1",
             "real_precision",

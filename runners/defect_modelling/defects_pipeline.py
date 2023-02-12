@@ -10,12 +10,15 @@ import random
 import skops.io
 import humanize
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, \
     balanced_accuracy_score, matthews_corrcoef, confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_on_data, select_columns
@@ -27,6 +30,30 @@ AVAILABLE_PIPELINES = {
         PCA(),
         StandardScaler(),
         RidgeClassifier()
+    ),
+    "unscaled-linear": lambda rng: make_pipeline(
+        RidgeClassifier()
+    ),
+    "basic-randomforest": lambda rng: make_pipeline(
+        PCA(),
+        StandardScaler(),
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-randomforest": lambda rng: make_pipeline(
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-decisiontree": lambda rng: make_pipeline(
+        DecisionTreeClassifier()
+    ),
+    "basic-adaboost": lambda rng: make_pipeline(
+        PCA(),
+        StandardScaler(),
+        AdaBoostClassifier()
+    ),
+    "basic-gradientboost": lambda rng: make_pipeline(
+        PCA(),
+        StandardScaler(),
+        GradientBoostingClassifier()
     )
 }
 
