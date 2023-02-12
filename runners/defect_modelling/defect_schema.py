@@ -109,6 +109,7 @@ METRIC_SETS['pmd'] = list(filter(lambda x: x.startswith("PMD_"), METRIC_SETS['al
 METRIC_SETS['pydriller'] = list(filter(lambda x: not x.startswith("PMD_") and not x.startswith("JAVAMETRICS"), METRIC_SETS['all']))
 METRIC_SETS['product'] = list(filter(lambda x: x.startswith("PMD_") or x.startswith("JAVAMETRICS_"), METRIC_SETS['all-non-null-numeric']))
 METRIC_SETS['process'] = list(filter(lambda x: not x.startswith("PMD_") and not x.startswith("JAVAMETRICS_"), METRIC_SETS['all-non-null-numeric']))
+METRIC_SETS['none'] = []
 
 CLASS_SETS = {
     'defects': ['buggy'],

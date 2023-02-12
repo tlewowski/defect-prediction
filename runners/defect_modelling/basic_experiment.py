@@ -9,7 +9,8 @@ import time
 
 from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set
 
-EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric']
+EVALUATE_METRIC_SETS = ["none"]
+#EVALUATE_METRIC_SETS = ['pydriller', 'pmd', 'javametrics-numeric', 'javametrics2', 'product', 'process', 'all-non-null-numeric', "none"]
 EVALUATE_MODEL_TYPES = ['basic-linear-ridge']
 TRAINING_FRACTION = 0.8
 CLASS_SET = "defects"
@@ -23,6 +24,7 @@ def prepare_args():
     parser.add_argument("--random_seed", required=False, type=int, help="Random seed to use in the model building")
     parser.add_argument("--model_count", required=True, type=int, help="How many models to generate per metric set")
     parser.add_argument("--smell_models", required=False, help="paths to all code smell models that are supposed to be predictors", nargs="*", type=str)
+    parser.add_argument("--results_file_name", required=False, help="filename for output data", type=str, default="final_defects_stats.csv")
 
     return parser.parse_args()
 
@@ -116,7 +118,10 @@ def run_as_main():
         for metric_set in EVALUATE_METRIC_SETS:
             for model_type in EVALUATE_MODEL_TYPES:
                 print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}'".format(model_type, metric_set))
-                all_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
+
+                if metric_set != 'none':
+                    all_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
+
                 all_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
 
         iteration_end_time = time.monotonic()
@@ -125,7 +130,7 @@ def run_as_main():
               "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i + 1)), minimum_unit="milliseconds")
               )
 
-    full_frame_location = os.path.abspath(os.path.join(args.workspace, "final_defects_stats.csv"))
+    full_frame_location = os.path.abspath(os.path.join(args.workspace, args.results_file_name))
     pd.DataFrame(
         [torow(all_models[model_num]) for model_num in range(len(all_models))],
         columns=[
