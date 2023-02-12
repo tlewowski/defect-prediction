@@ -36,9 +36,9 @@ def cleanse(data, all_cols, allow_drop=True):
             relevant_data[metric] = relevant_data[metric].apply(lambda x: x + 1 if not pd.isna(x) else 0)
 
     dropped = relevant_data.dropna()
-    print("SMELL_UTILS: After dropping NAs, {} reviews/samples left".format(len(dropped.index)))
+    print("DEFECT_UTILS: After dropping NAs, {} reviews/samples left".format(len(dropped.index)))
     if len(relevant_data.index) != len(dropped.index):
-        print("SMELL_UTILS: !!!! Warning! Dropped samples! Results may be surprising !!!! Initial:{}, final: {}".format(len(relevant_data.index), len(dropped.index)))
+        print("DEFEFCT_UTILS: !!!! Warning! Dropped samples! Results may be surprising !!!! Initial:{}, final: {}".format(len(relevant_data.index), len(dropped.index)))
         if not allow_drop:
             raise Exception("Some samples were dropped at preprocessing, but dropping was not allowed")
 

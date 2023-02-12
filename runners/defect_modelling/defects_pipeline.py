@@ -5,11 +5,11 @@ import hashlib
 import os.path
 import sys
 import time
+import random
 
 import skops.io
 import humanize
 import pandas as pd
-from shortuuid import random
 from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, \
     balanced_accuracy_score, matthews_corrcoef, confusion_matrix
@@ -26,7 +26,7 @@ def prepare_args(cmd_args):
         prog="defect-model-builder",
         description="Build defect prediction models"
     )
-    parser.add_argument("--input_data", required=True, help="file with defects, class and commit metrics", type=str)
+    parser.add_argument("--data_file", required=True, help="file with defects, class and commit metrics", type=str)
     parser.add_argument("--metric_set", required=True, help="which set of metrics shall be used for prediction", choices=METRIC_SETS.keys())
     parser.add_argument("--class_set", required=True, help="which features shall be treated as the class columns", choices=CLASS_SETS.keys())
     parser.add_argument("--smell_models", required=False, help="paths to all code smell models that are supposed to be predictors", nargs="*", type=str)
@@ -96,7 +96,7 @@ def test_ml_pipeline(pipeline, test_data, metric_set, class_set):
 def load_input(input_file):
     data = pd.read_csv(input_file, sep=",")
 
-    # Removing, because entries for Hadoop are broken
+    # Removing, because entries for Hadoop are broken - none are marked as "buggy"
     return data[data["project"] != "hadoop"]
 
 def select_relevant_columns(data, metric_set, class_set):
@@ -120,14 +120,14 @@ def train_test_commit_split(data, class_set, train_ratio, random_state):
 
     train_revisions = revision_data.groupby(class_set).sample(frac=train_ratio, random_state=random_state)
     test_revisions = pd.concat([revision_data, train_revisions]).drop_duplicates(keep=False)
-    print("DEFECT_PIPELINE: After split got", len(train_revisions.index), "samples for training and", len(test_revisions.index), "samples for training")
+    print("DEFECT_PIPELINE: After split from", len(revision_data.index),"got", len(train_revisions.index), "samples for training and", len(test_revisions.index), "samples for training")
     return train_revisions, test_revisions
 
 
 def run_with_args(cmd_args):
     preparation_start_ts = time.monotonic()
     args = prepare_args(cmd_args)
-    input_file = os.path.abspath(args.input_data)
+    input_file = os.path.abspath(args.data_file)
     data = load_input(input_file)
 
     if args.random_seed is not None:

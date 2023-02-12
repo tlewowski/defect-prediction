@@ -13,5 +13,5 @@ workdir
 
 *.csv
 
-workdir-smell-experiment
-workdir
+workdir-*
+*-workdir

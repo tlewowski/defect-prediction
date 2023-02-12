@@ -36,19 +36,19 @@ def evaluate_model(workspace, data_file, models_dir, metric_set, index, seed, sm
         )
     )
 
-    params = ["--input_data", os.path.abspath(data_file),
+    params = ["--data_file", os.path.abspath(data_file),
               "--metric_set", metric_set,
               "--class_set", CLASS_SET,
               "--model_target", model_target,
               "--random_seed", str(seed),
-              "--training_fraction", TRAINING_FRACTION
+              "--training_fraction", str(TRAINING_FRACTION)
               ]
 
     if len(smell_models) > 0:
         params.append("--smell_models")
         params.extend(smell_models)
 
-    print("SMELLS_EXPERIMENT: Building model nr {} with {} from {} data".format(index, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
+    print("DEFECTS_EXPERIMENT: Building model nr {} with {} from {} data".format(index, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
     return generate_defect_model(params)
 
 def torows(model, model_num):
