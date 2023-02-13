@@ -97,42 +97,10 @@ def torow(model):
         model["preparation_time_sec"]
     ]
 
-def run_as_main():
-    args = prepare_args()
-    random.seed(args.random_seed)
-
-    models_dir = os.path.join(args.workspace, "models")
-    os.makedirs(models_dir, exist_ok=True)
-
-    prep_time_start_ts = time.monotonic()
-    data, datafile_checksum = prepare_data_set(args.data_file, args.smell_models)
-    prep_time_end_ts = time.monotonic()
-    print("DEFECTS_EXPERIMENT: Prepared data for further processing in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=prep_time_end_ts - prep_time_start_ts), minimum_unit="milliseconds")))
-
-    all_models = []
-    start_time = time.monotonic()
-    for i in range(args.model_count):
-        iteration_start_time = time.monotonic()
-        seed = random.randint(0, 2**32 - 1)
-        print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
-        for metric_set in EVALUATE_METRIC_SETS:
-            for model_type in EVALUATE_MODEL_TYPES:
-                print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}'".format(model_type, metric_set))
-
-                if metric_set != 'none':
-                    all_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
-
-                all_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
-
-        iteration_end_time = time.monotonic()
-        print("DEFECTS_EXPERIMENT: Time taken - iteration {}/{}:".format(i + 1, args.model_count), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
-              "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - start_time), minimum_unit="milliseconds"),
-              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i + 1)), minimum_unit="milliseconds")
-              )
-
-    full_frame_location = os.path.abspath(os.path.join(args.workspace, args.results_file_name))
+def dump_models(workdir, filename, model_list):
+    target_location = os.path.abspath(os.path.join(workdir, filename))
     pd.DataFrame(
-        [torow(all_models[model_num]) for model_num in range(len(all_models))],
+        [torow(model_list[model_num]) for model_num in range(len(model_list))],
         columns=[
             "metric_set",
             "name",
@@ -164,7 +132,54 @@ def run_as_main():
             "test_time_sec",
             "preparation_time_sec"
         ]
-    ).to_csv(full_frame_location, index_label=["model_num"])
+    ).to_csv(target_location, index_label=["model_num"])
+
+def run_as_main():
+    args = prepare_args()
+    random.seed(args.random_seed)
+
+    models_dir = os.path.join(args.workspace, "models")
+    os.makedirs(models_dir, exist_ok=True)
+
+    prep_time_start_ts = time.monotonic()
+    data, datafile_checksum = prepare_data_set(args.data_file, args.smell_models)
+    prep_time_end_ts = time.monotonic()
+    print("DEFECTS_EXPERIMENT: Prepared data for further processing in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=prep_time_end_ts - prep_time_start_ts), minimum_unit="milliseconds")))
+
+    all_models = []
+    start_time = time.monotonic()
+    for i in range(args.model_count):
+        iteration_start_time = time.monotonic()
+        seed = random.randint(0, 2**32 - 1)
+        print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
+        iteration_models = []
+        for metric_set in EVALUATE_METRIC_SETS:
+            metric_set_start_time = time.monotonic()
+            metric_models = []
+            for model_type in EVALUATE_MODEL_TYPES:
+                model_start_time = time.monotonic()
+                print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}'".format(model_type, metric_set))
+                if metric_set != 'none':
+                    metric_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
+
+                metric_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
+                print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}'. Took: {}".format(model_type, metric_set, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
+
+            dump_models(args.workspace, "intermediate_results_{}_{}.csv".format(metric_set, i), metric_models)
+            iteration_models.extend(metric_models)
+            print("DEFECTS_EXPERIMENT: Evaluated all models for predictor set: '{}'. Took: {}".format( metric_set, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - metric_set_start_time))))
+
+        dump_models(args.workspace, "intermediate_results_{}.csv".format(i), iteration_models)
+        all_models.extend(iteration_models)
+
+
+        iteration_end_time = time.monotonic()
+        print("DEFECTS_EXPERIMENT: Time taken - iteration {}/{}:".format(i + 1, args.model_count), humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - iteration_start_time), minimum_unit="milliseconds"),
+              "/ total:",  humanize.naturaldelta(datetime.timedelta(seconds=iteration_end_time - start_time), minimum_unit="milliseconds"),
+              "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i + 1)), minimum_unit="milliseconds")
+              )
+
+    dump_models(args.workspace, args.results_file_name, all_models)
 
     print("DEFECTS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - start_time)), full_frame_location))
 
