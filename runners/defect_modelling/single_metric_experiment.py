@@ -191,8 +191,7 @@ def run_as_main():
 
     dump_models(args.workspace, args.results_file_name, all_models)
 
-    print("DEFECTS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - start_time)), full_frame_location))
-
+    print("DEFECTS_EXPERIMENT: Took {}, performance metrics available in {}".format(humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - start_time)), os.path.abspath(os.path.join(args.workspace, args.results_file_name))))
 
 if __name__ == '__main__':
     run_as_main()
