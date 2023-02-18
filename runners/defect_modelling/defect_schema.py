@@ -111,7 +111,7 @@ METRIC_SETS['product'] = list(filter(lambda x: x.startswith("PMD_") or x.startsw
 METRIC_SETS['process'] = list(filter(lambda x: not x.startswith("PMD_") and not x.startswith("JAVAMETRICS_"), METRIC_SETS['all-non-null-numeric']))
 METRIC_SETS['none'] = []
 
-METRIC_SETS.update(dict([(m,m) for m in METRIC_SETS['all-non-null-numeric']]))
+METRIC_SETS.update(dict([(m,[m]) for m in METRIC_SETS['all-non-null-numeric']]))
 
 CLASS_SETS = {
     'defects': ['buggy'],
