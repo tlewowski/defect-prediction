@@ -21,4 +21,4 @@ python -m defect_modelling.basic_experiment --data_file ../data/merged-defects/p
 
 # Single-metric experiment evaluations
 
-python -m defect_modelling.single_metric_experiment --data_file ../data/merged-defects/prejoined_full.csv --model_count 10 --workspace ../defects-single-workdir --random_seed 3407870547 --smell_models ../data/smells/pmd-blob.skops ../data/smells/jm-blob.skops ../data/smells/all-blob.skops ../data/smells/pmd-dc.skops ../data/smells/jm-dc.skops ../data/smells/all-dc.skops
+python -m defect_modelling.single_metric_experiment --data_file ../data/merged-defects/prejoined_full.csv --model_count 100 --workspace ../defects-single-workdir2 --random_seed 3462457372 --smell_models ../data/smells/pmd-blob.skops ../data/smells/jm-blob.skops ../data/smells/all-blob.skops ../data/smells/pmd-dc.skops ../data/smells/jm-dc.skops ../data/smells/all-dc.skops
