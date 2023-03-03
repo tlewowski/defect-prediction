@@ -12,6 +12,13 @@ from defect_modelling.defect_schema import METRIC_SETS
 
 EVALUATE_METRIC_SETS = [k for k in METRIC_SETS.keys() if len(METRIC_SETS[k]) == 1]
 EVALUATE_MODEL_TYPES = AVAILABLE_PIPELINES.keys()
+EVALUATE_PROJECTS = [
+    "activemq", "camel", "cassandra",
+    "flink", "groovy", "hadoop-hdfs",
+    "hadoop-mapreduce", "hbase", "hive",
+    "ignite", "kafka", "spark",
+    "zeppelin", "zookeeper"
+]
 
 CLASS_SET = "defects"
 def prepare_args():
@@ -160,19 +167,20 @@ def run_as_main():
             metric_set_start_time = time.monotonic()
             metric_models = []
             for model_type in EVALUATE_MODEL_TYPES:
-                model_start_time = time.monotonic()
-                print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}'".format(model_type, metric_set))
-                try:
-                    if metric_set != 'none':
-                        metric_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, []))
+                for project in EVALUATE_PROJECTS:
+                    model_start_time = time.monotonic()
+                    print("DEFECTS_EXPERIMENT: Evaluating model '{}' for predictor set: '{}', project: {}".format(model_type, metric_set, project))
+                    try:
+                        if metric_set != 'none':
+                            metric_models.append(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, project, []))
 
-                    metric_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, args.smell_models))
-                    print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}'. Took: {}".format(model_type, metric_set, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
-                    successful = successful + 1
-                except Exception as e:
-                    failures = failures + 1
-                    print("DEFECT_EXPERIMENT: Failures: {}. Current exception {}".format(failures, e))
-                print("DEFECTS_EXPERIMENT: Successes: {}, failures: {}".format(successful, failures))
+                        metric_models.append(evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, project, args.smell_models))
+                        print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}', project: {}. Took: {}".format(model_type, metric_set, project, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
+                        successful = successful + 1
+                    except Exception as e:
+                        failures = failures + 1
+                        print("DEFECT_EXPERIMENT: Failures: {}. Current exception {}".format(failures, e))
+                    print("DEFECTS_EXPERIMENT: Successes: {}, failures: {}".format(successful, failures))
 
             dump_models(args.workspace, "intermediate_results_{}_{}.csv".format(metric_set, i), metric_models)
             iteration_models.extend(metric_models)
