@@ -7,11 +7,9 @@ tools
 workspace
 !.gitignore
 
-workdir
+*workdir*
 *.tar.gz
 
 
 *.csv
-
-workdir-*
-*-workdir
+*.tex

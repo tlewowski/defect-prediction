@@ -153,12 +153,12 @@ def calculate_smells(data, smell_models):
     return functools.reduce(lambda l, r: l.join(r, how="outer"), results).sort_index()
 
 
-def train_test_commit_split(data, class_set, train_ratio, random_state):
+def train_test_commit_split(data, class_set, train_revisions_from_all_samples):
     cols = ["revision"]
     cols.extend(class_set)
     revision_data = data.loc[:, cols].drop_duplicates()
 
-    train_revisions = revision_data.groupby(class_set).sample(frac=train_ratio, random_state=random_state)
+    train_revisions = train_revisions_from_all_samples(revision_data.groupby(class_set))
     test_revisions = pd.concat([revision_data, train_revisions]).drop_duplicates(keep=False)
     print("DEFECT_PIPELINE: After split from", len(revision_data.index),"got", len(train_revisions.index), "samples for training and", len(test_revisions.index), "samples for training")
     return train_revisions, test_revisions
@@ -185,19 +185,27 @@ def prepare_data_set(data_file, smell_models):
     print("DEFECT_PIPELINE_PREP: Finished basic data preparation in", humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic()-preparation_start_ts), minimum_unit="milliseconds"))
     return cleanse(data), datafile_checksum
 
-def run_on_data(cmd_args, data, datafile_checksum):
+def random_sampler(train_ratio, random_state):
+    return lambda ds: ds.sample(frac=train_ratio, random_state=random_state)
+
+def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     preparation_start_ts = time.monotonic()
     args = prepare_args(cmd_args)
     print("DEFECT_PIPELINE: Running with", len(data.index), "entries")
     if args.random_seed is not None:
         random.seed(args.random_seed)
 
+    if training_sampler is None:
+        sampler = random_sampler(args.training_fraction, random.randint(0, 2**32 - 1))
+    else:
+        sampler = training_sampler
+
     metric_set = METRIC_SETS[args.metric_set].copy()
     class_set = CLASS_SETS[args.class_set].copy()
     metric_set.extend([col for col in data.columns.values.ravel() if col.startswith("SMELL_") and len(args.smell_models) > 0])
     relevant_data = select_relevant_columns(data, metric_set, class_set)
 
-    training_revisions, testing_revisions = train_test_commit_split(data, class_set, args.training_fraction, random.randint(0, 2**32 - 1))
+    training_revisions, testing_revisions = train_test_commit_split(data, class_set, sampler)
     training_data = relevant_data[relevant_data.revision.isin(training_revisions.revision)]
     testing_data = relevant_data[relevant_data.revision.isin(testing_revisions.revision)]
 

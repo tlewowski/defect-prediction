@@ -89,6 +89,13 @@ def run_as_main():
               "/ average:", humanize.naturaldelta(datetime.timedelta(seconds=(iteration_end_time - start_time) / (i +1 )), minimum_unit="milliseconds")
         )
 
+
+    # magical list comprehension
+    # acc = []
+    # for model_num in range(len(all_models)):
+    #   for row in torows(all_models[model_num], model_num):
+    #     acc.append(row)
+    #
     full_frame_location = os.path.abspath(os.path.join(args.workspace, "final_stats.csv"))
     pd.DataFrame(
         [row for model_num in range(len(all_models)) for row in torows(all_models[model_num], model_num)],
