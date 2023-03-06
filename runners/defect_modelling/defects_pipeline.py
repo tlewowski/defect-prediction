@@ -153,12 +153,12 @@ def calculate_smells(data, smell_models):
     return functools.reduce(lambda l, r: l.join(r, how="outer"), results).sort_index()
 
 
-def train_test_commit_split(data, class_set, train_revisions_from_all_samples):
-    cols = ["revision"]
-    cols.extend(class_set)
+def train_test_commit_split(data, classes, sampler):
+    cols = ["revision", "project"]
+    cols.extend(classes)
     revision_data = data.loc[:, cols].drop_duplicates()
 
-    train_revisions = train_revisions_from_all_samples(revision_data.groupby(class_set))
+    train_revisions = sampler(revision_data, classes)
     test_revisions = pd.concat([revision_data, train_revisions]).drop_duplicates(keep=False)
     print("DEFECT_PIPELINE: After split from", len(revision_data.index),"got", len(train_revisions.index), "samples for training and", len(test_revisions.index), "samples for training")
     return train_revisions, test_revisions
@@ -186,7 +186,7 @@ def prepare_data_set(data_file, smell_models):
     return cleanse(data), datafile_checksum
 
 def random_sampler(train_ratio, random_state):
-    return lambda ds: ds.sample(frac=train_ratio, random_state=random_state)
+    return lambda ds, classes: ds.groupby(classes).sample(frac=train_ratio, random_state=random_state)
 
 def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     preparation_start_ts = time.monotonic()

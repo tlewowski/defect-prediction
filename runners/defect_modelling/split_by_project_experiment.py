@@ -10,7 +10,7 @@ import time
 from defects_pipeline import run_on_data as generate_defect_model, prepare_data_set, AVAILABLE_PIPELINES
 from defect_modelling.defect_schema import METRIC_SETS
 
-EVALUATE_METRIC_SETS = [k for k in METRIC_SETS.keys() if len(METRIC_SETS[k]) == 1]
+EVALUATE_METRIC_SETS = [k for k in METRIC_SETS.keys() if len(METRIC_SETS[k]) > 1]
 EVALUATE_MODEL_TYPES = AVAILABLE_PIPELINES.keys()
 EVALUATE_PROJECTS = [
     "activemq", "camel", "cassandra",
@@ -59,7 +59,7 @@ def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, m
         params.extend(smell_models)
 
     print("DEFECTS_EXPERIMENT: Building model nr {} with {} from {} data".format(index + 1, "smells" if len(smell_models) > 0 else "nosmells", metric_set))
-    return generate_defect_model(params, data, datafile_checksum, training_sampler=lambda ds: ds.loc[ds.project != project])
+    return generate_defect_model(params, data, datafile_checksum, training_sampler=lambda ds, classes: ds.loc[ds["project"] != project])
 
 def torow(model):
 
