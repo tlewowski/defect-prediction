@@ -139,7 +139,10 @@ def select_relevant_columns(data, metric_set, class_set, allow_drop=True):
     dropped = selected.dropna()
     print("DEFECT_UTILS: After dropping NAs, {} reviews/samples left (from {} initially)".format(len(dropped.index), len(selected.index)))
     if len(selected.index) != len(dropped.index):
-        print("DEFEFCT_UTILS: !!!! Warning! Detected N/A samples! If they are not dropped later on, results may be surprising! Initial:{}, final: {}".format(len(selected.index), len(dropped.index)))
+        print("DEFECT_UTILS: !!!! Warning! Detected N/A samples! If they are not dropped later on, "
+              "results may be surprising! Initial:{}, final: {}. Example rows: ".format(
+            len(selected.index), len(selected.index), selected[dropped.isna().any(axis=1)])
+        )
         if not allow_drop:
             raise Exception("Some samples were dropped at preprocessing, but dropping was not allowed")
 
