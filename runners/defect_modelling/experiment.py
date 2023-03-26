@@ -172,10 +172,15 @@ def run_as_main():
     total = args.model_count * len(args.pipelines) * len(args.metric_sets)
     successful = 0
     failures = 0
+
+    seeds = []
+
+    for i in range(args.model_count):
+        seeds.append(random.randint(0, 2**32 - 1))
+
     start_time = time.monotonic()
     for i in range(args.model_count):
         iteration_start_time = time.monotonic()
-        seed = random.randint(0, 2**32 - 1)
         print("DEFECTS_EXPERIMENT: Evaluating {} out of {}".format(i + 1, args.model_count))
         iteration_models = []
         for metric_set in args.metric_sets:
@@ -188,12 +193,12 @@ def run_as_main():
                     try:
                         if metric_set != 'none':
                             metric_models.append(
-                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seed, project, [], args.training_fraction, args.save_models))
+                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models))
                             )
 
                         metric_models.append(
                             minimized_output(
-                                evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seed, project, args.smell_models, args.training_fraction, args.save_models)
+                                evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models)
                             )
                         )
                         print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}', project: {}. Took: {}".format(model_type, metric_set, project, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
