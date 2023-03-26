@@ -70,6 +70,7 @@ def prepare_args(cmd_args):
     parser.add_argument("--training_fraction", required=False, type=float, help="fraction of data set to be used in training", default=0.8)
     parser.add_argument("--model_target", required=False, type=str, help="location where model will be saved")
     parser.add_argument("--model_type", required=True, type=str, help="which pipeline to use for modelling", choices=AVAILABLE_PIPELINES.keys())
+    parser.add_argument("--save_models", type=bool, action=argparse.BooleanOptionalAction, help="save built models for future evaluation", default=True)
 
     return parser.parse_args(cmd_args)
 
