@@ -54,7 +54,7 @@ def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, m
               "--model_target", model_target,
               "--model_type", model_type,
               "--random_seed", str(seed),
-              "--save_models", str(save_models)
+              "--save_models" if save_models else "--no-save_models"
               ]
 
     if len(smell_models) > 0:
