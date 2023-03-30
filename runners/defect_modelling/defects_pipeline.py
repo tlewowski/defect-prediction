@@ -241,7 +241,7 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
         "test_time_sec": process_end_ts - testing_start_ts
     }
 
-    if args.model_target is not None:
+    if args.model_target is not None and args.save_models:
         skops.io.dump(output, os.path.abspath(args.model_target))
 
     return output
