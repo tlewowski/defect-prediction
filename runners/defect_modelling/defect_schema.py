@@ -119,3 +119,20 @@ CLASS_SETS = {
     'defects': ['buggy'],
     'fixes': ['fix']
 }
+
+METRIC_SETS['minimal-good'] = ["la",
+                               "JAVAMETRICS2_MeanAuthorCommits",
+                               "JAVAMETRICS2_DaysPassedSinceTheLastChange",
+                               "JAVAMETRICS2_NumberOfFieldAnnotations",
+                               "JAVAMETRICS2_NumberOfAccessorMethods",
+                               "JAVAMETRICS2_NumberOfMutatorMethods"
+                               ]
+
+METRIC_SETS['best-mcc'] = ["la", "JAVAMETRICS2_MeanAuthorCommits"]
+
+METRIC_SETS['best-precision'] = ["la",
+                               "JAVAMETRICS2_DaysPassedSinceTheLastChange",
+                               "JAVAMETRICS2_NumberOfFieldAnnotations",
+                               "JAVAMETRICS2_NumberOfAccessorMethods",
+                               "JAVAMETRICS2_NumberOfMutatorMethods"
+                               ]
