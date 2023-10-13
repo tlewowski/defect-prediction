@@ -196,16 +196,17 @@ def run_as_main():
                                 minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models))
                             )
 
-                        metric_models.append(
-                            minimized_output(
-                                evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models)
+                        if args.smell_models is not None:
+                            metric_models.append(
+                                minimized_output(
+                                    evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models)
+                                )
                             )
-                        )
                         print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}', project: {}. Took: {}".format(model_type, metric_set, project, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
                         successful = successful + 1
                     except Exception as e:
                         failures = failures + 1
-                        print("DEFECT_EXPERIMENT: Failures: {}. Current exception {}".format(failures, e))
+                        print("DEFECTS_EXPERIMENT: Failures: {}. Current exception {}".format(failures, e))
                     print("DEFECTS_EXPERIMENT: Successes: {}, failures: {}. Total target: {}".format(successful, failures, total))
 
             dump_models(args.workspace, "intermediate_results_{}_{}.csv".format(metric_set, i), metric_models)
