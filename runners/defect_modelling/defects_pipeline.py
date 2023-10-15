@@ -19,6 +19,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_on_data, select_columns
@@ -44,6 +47,15 @@ AVAILABLE_PIPELINES = {
     ),
     "unscaled-decisiontree": lambda rng: make_pipeline(
         DecisionTreeClassifier()
+    ),
+    "unscaled-catboost": lambda rng: make_pipeline(
+        CatBoostClassifier()
+    ),
+    "unscaled-LGBM": lambda rng: make_pipeline(
+        LGBMClassifier()
+    ),
+    "unscaled-XGB": lambda rng: make_pipeline(
+        XGBClassifier()
     ),
     "basic-adaboost": lambda rng: make_pipeline(
         PCA(),
@@ -93,7 +105,7 @@ def test_ml_pipeline(pipeline, test_data, metric_set, class_set):
     revisions = test_data.loc[:, ["revision"]]
     test_predictors = test_data.loc[:, metric_set]
     classes = test_data.loc[:, class_set]
-    predictions = pipeline.predict(test_predictors)
+    predictions = pipeline.predict(test_predictors).astype(classes[class_set[0]].dtype)
 
     scoring = {
         "mcc": matthews_corrcoef,
