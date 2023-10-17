@@ -49,7 +49,13 @@ AVAILABLE_PIPELINES = {
         DecisionTreeClassifier()
     ),
     "unscaled-catboost": lambda rng: make_pipeline(
-        CatBoostClassifier()
+        CatBoostClassifier(
+            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
+            class_weights={
+                "True": 0.8, # using a Boolean instead of string causes Catboost to crash
+                "False": 0.2 # using a Boolean instead of string causes Catboost to crash
+            }
+        )
     ),
     "unscaled-LGBM": lambda rng: make_pipeline(
         LGBMClassifier()
