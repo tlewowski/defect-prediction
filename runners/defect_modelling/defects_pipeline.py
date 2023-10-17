@@ -48,12 +48,30 @@ AVAILABLE_PIPELINES = {
     "unscaled-decisiontree": lambda rng: make_pipeline(
         DecisionTreeClassifier()
     ),
-    "unscaled-catboost": lambda rng: make_pipeline(
+    "unscaled-catboost-01": lambda rng: make_pipeline(
         CatBoostClassifier(
             # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
             class_weights={
-                "True": 0.8, # using a Boolean instead of string causes Catboost to crash
-                "False": 0.2 # using a Boolean instead of string causes Catboost to crash
+                1: 0.9, # using a Boolean instead of string causes Catboost to crash
+                0: 0.1 # using a Boolean instead of string causes Catboost to crash
+            }
+        )
+    ),
+    "unscaled-catboost-02": lambda rng: make_pipeline(
+        CatBoostClassifier(
+            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
+            class_weights={
+                1: 0.8, # using a Boolean instead of string causes Catboost to crash
+                0: 0.2 # using a Boolean instead of string causes Catboost to crash
+            }
+        )
+    ),
+    "unscaled-catboost-05": lambda rng: make_pipeline(
+        CatBoostClassifier(
+            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
+            class_weights={
+                1: 0.5, # using a Boolean instead of string causes Catboost to crash
+                0: 0.5 # using a Boolean instead of string causes Catboost to crash
             }
         )
     ),
@@ -155,6 +173,7 @@ def select_relevant_columns(data, metric_set, class_set, allow_drop=True):
     all_cols.append("revision")
 
     selected = data.loc[:, all_cols]
+    selected[class_set] = selected[class_set].applymap(lambda x: 1 if x else 0)
     dropped = selected.dropna()
     print("DEFECT_UTILS: After dropping NAs, {} reviews/samples left (from {} initially)".format(len(dropped.index), len(selected.index)))
     if len(selected.index) != len(dropped.index):
