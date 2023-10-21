@@ -11,17 +11,18 @@ import skops.io
 import humanize
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import VarianceThreshold, SelectFromModel
 from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, \
     balanced_accuracy_score, matthews_corrcoef, confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBModel
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_on_data, select_columns
@@ -54,7 +55,8 @@ AVAILABLE_PIPELINES = {
             class_weights={
                 1: 0.9, # using a Boolean instead of string causes Catboost to crash
                 0: 0.1 # using a Boolean instead of string causes Catboost to crash
-            }
+            },
+            random_state=rng
         )
     ),
     "unscaled-catboost-02": lambda rng: make_pipeline(
@@ -63,7 +65,8 @@ AVAILABLE_PIPELINES = {
             class_weights={
                 1: 0.8, # using a Boolean instead of string causes Catboost to crash
                 0: 0.2 # using a Boolean instead of string causes Catboost to crash
-            }
+            },
+            random_state=rng
         )
     ),
     "unscaled-catboost-05": lambda rng: make_pipeline(
@@ -72,24 +75,45 @@ AVAILABLE_PIPELINES = {
             class_weights={
                 1: 0.5, # using a Boolean instead of string causes Catboost to crash
                 0: 0.5 # using a Boolean instead of string causes Catboost to crash
-            }
+            },
+            random_state=rng
         )
     ),
     "unscaled-LGBM": lambda rng: make_pipeline(
-        LGBMClassifier()
+        LGBMClassifier(random_state=rng)
     ),
     "unscaled-XGB": lambda rng: make_pipeline(
-        XGBClassifier()
+        XGBClassifier(XGBModel(random_state=rng))
     ),
     "basic-adaboost": lambda rng: make_pipeline(
         PCA(),
         StandardScaler(),
-        AdaBoostClassifier()
+        AdaBoostClassifier(random_state=rng)
     ),
     "basic-gradientboost": lambda rng: make_pipeline(
         PCA(),
         StandardScaler(),
-        GradientBoostingClassifier()
+        GradientBoostingClassifier(random_state=rng)
+    ),
+    "unscaled-featureselected-1-randomforest": lambda rng: make_pipeline(
+        SelectFromModel(LinearSVC(penalty="l2"), max_features=1),
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-featureselected-2-randomforest": lambda rng: make_pipeline(
+        SelectFromModel(LinearSVC(penalty="l2"), max_features=2),
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-featureselected-3-randomforest": lambda rng: make_pipeline(
+        SelectFromModel(LinearSVC(penalty="l2"), max_features=3),
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-featureselected-4-randomforest": lambda rng: make_pipeline(
+        SelectFromModel(LinearSVC(penalty="l2"), max_features=4),
+        RandomForestClassifier(random_state=rng)
+    ),
+    "unscaled-featureselected-5-randomforest": lambda rng: make_pipeline(
+        SelectFromModel(LinearSVC(penalty="l2"), max_features=5),
+        RandomForestClassifier(random_state=rng)
     )
 }
 
