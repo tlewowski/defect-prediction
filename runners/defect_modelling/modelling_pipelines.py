@@ -95,7 +95,7 @@ def unscaled_featureselected_n_randomforest_pipeline(n):
     def f(rng, artifacts_path):
         return make_pipeline(
             WrappedFeatureSelection(
-                SelectFromModel(LinearSVC(penalty="l2", max_iter=10**5, random_state=rng), max_features=n),
+                SelectFromModel(LinearSVC(penalty="l2", max_iter=1500, random_state=rng), max_features=n),
                 artifacts_path
             ),
             RandomForestClassifier(random_state=rng)
