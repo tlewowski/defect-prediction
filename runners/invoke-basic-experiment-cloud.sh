@@ -25,3 +25,7 @@ python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --m
 
 # Feature selection
 python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 10 --workspace ../basic-workdir-20231021-minimal --random_seed 540957747 --smell_models ../data/smells/pmd-blob.skops ../data/smells/pmd-dc.skops ../data/smells/all-blob.skops ../data/smells/all-dc.skops ../data/smells/jm-dc.skops ../data/smells/jm-blob.skops --training_fraction 0.8 --no-save_models --metric_sets all-non-null-numeric --pipelines unscaled-featureselected-1-randomforest unscaled-featureselected-2-randomforest unscaled-featureselected-3-randomforest unscaled-featureselected-4-randomforest unscaled-featureselected-5-randomforest
+
+
+# Feature selection with printing
+python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 1 --workspace ../features-20231022 --random_seed 540957747 --training_fraction 0.8 --no-save_models --save_artifacts --metric_sets pydriller --pipelines unscaled-featureselected-2-randomforest

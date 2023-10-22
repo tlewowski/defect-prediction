@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os
 import random
+import traceback
 
 import humanize
 import pandas as pd
@@ -34,11 +35,12 @@ def prepare_args():
     parser.add_argument("--pipelines", required=True, type=str, choices=AVAILABLE_PIPELINES.keys(), help="ML pipelines to include in evaluation", nargs="+")
     parser.add_argument("--training_fraction", required=False, type=float, help="If given, represents ratio of data set that will be used for training. If not given, per-project approach will be used.")
     parser.add_argument("--save_models", type=bool, action=argparse.BooleanOptionalAction, help="save built models for future evaluation", default=True)
+    parser.add_argument("--save_artifacts", type=bool, action=argparse.BooleanOptionalAction, help="save additional artifacts created by intermediate pipeline steps", default=True)
 
     return parser.parse_args()
 
 
-def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, metric_set, index, seed, project, smell_models, training_fraction, save_models):
+def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, metric_set, index, seed, project, smell_models, training_fraction, save_models, save_artifacts):
     model_workspace = os.path.join(workspace, "workdir", metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
     model_target = os.path.abspath(
@@ -54,7 +56,8 @@ def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, m
               "--model_target", model_target,
               "--model_type", model_type,
               "--random_seed", str(seed),
-              "--save_models" if save_models else "--no-save_models"
+              "--save_models" if save_models else "--no-save_models",
+              "--save_artifacts" if save_artifacts else "--no-save_artifacts"
               ]
 
     if len(smell_models) > 0:
@@ -193,13 +196,13 @@ def run_as_main():
                     try:
                         if metric_set != 'none':
                             metric_models.append(
-                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models))
+                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models, args.save_artifacts))
                             )
 
                         if args.smell_models is not None:
                             metric_models.append(
                                 minimized_output(
-                                    evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models)
+                                    evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models, args.save_artifacts)
                                 )
                             )
                         print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}', project: {}. Took: {}".format(model_type, metric_set, project, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
@@ -207,6 +210,7 @@ def run_as_main():
                     except Exception as e:
                         failures = failures + 1
                         print("DEFECTS_EXPERIMENT: Failures: {}. Current exception {}".format(failures, e))
+                        traceback.print_exception(e)
                     print("DEFECTS_EXPERIMENT: Successes: {}, failures: {}. Total target: {}".format(successful, failures, total))
 
             dump_models(args.workspace, "intermediate_results_{}_{}.csv".format(metric_set, i), metric_models)

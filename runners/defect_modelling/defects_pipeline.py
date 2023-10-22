@@ -5,8 +5,8 @@ import hashlib
 import os.path
 import sys
 import time
-import random
 
+import numpy
 import skops.io
 import humanize
 import pandas as pd
@@ -28,94 +28,8 @@ from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_on_data, select_columns
 from defect_utils import cleanse
 from smell_modelling.smell_utils import impute_data
+from modelling_pipelines import AVAILABLE_PIPELINES
 
-AVAILABLE_PIPELINES = {
-    "basic-linear-ridge": lambda rng: make_pipeline(
-        PCA(),
-        StandardScaler(),
-        RidgeClassifier()
-    ),
-    "unscaled-linear": lambda rng: make_pipeline(
-        RidgeClassifier()
-    ),
-    "basic-randomforest": lambda rng: make_pipeline(
-        PCA(),
-        StandardScaler(),
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-randomforest": lambda rng: make_pipeline(
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-decisiontree": lambda rng: make_pipeline(
-        DecisionTreeClassifier()
-    ),
-    "unscaled-catboost-01": lambda rng: make_pipeline(
-        CatBoostClassifier(
-            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
-            class_weights={
-                1: 0.9, # using a Boolean instead of string causes Catboost to crash
-                0: 0.1 # using a Boolean instead of string causes Catboost to crash
-            },
-            random_state=rng
-        )
-    ),
-    "unscaled-catboost-02": lambda rng: make_pipeline(
-        CatBoostClassifier(
-            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
-            class_weights={
-                1: 0.8, # using a Boolean instead of string causes Catboost to crash
-                0: 0.2 # using a Boolean instead of string causes Catboost to crash
-            },
-            random_state=rng
-        )
-    ),
-    "unscaled-catboost-05": lambda rng: make_pipeline(
-        CatBoostClassifier(
-            # use_best_model=True # this causes to crash because of lack of an additional validation dataset / evaluation metric
-            class_weights={
-                1: 0.5, # using a Boolean instead of string causes Catboost to crash
-                0: 0.5 # using a Boolean instead of string causes Catboost to crash
-            },
-            random_state=rng
-        )
-    ),
-    "unscaled-LGBM": lambda rng: make_pipeline(
-        LGBMClassifier(random_state=rng)
-    ),
-    "unscaled-XGB": lambda rng: make_pipeline(
-        XGBClassifier(XGBModel(random_state=rng))
-    ),
-    "basic-adaboost": lambda rng: make_pipeline(
-        PCA(),
-        StandardScaler(),
-        AdaBoostClassifier(random_state=rng)
-    ),
-    "basic-gradientboost": lambda rng: make_pipeline(
-        PCA(),
-        StandardScaler(),
-        GradientBoostingClassifier(random_state=rng)
-    ),
-    "unscaled-featureselected-1-randomforest": lambda rng: make_pipeline(
-        SelectFromModel(LinearSVC(penalty="l2"), max_features=1),
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-featureselected-2-randomforest": lambda rng: make_pipeline(
-        SelectFromModel(LinearSVC(penalty="l2"), max_features=2),
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-featureselected-3-randomforest": lambda rng: make_pipeline(
-        SelectFromModel(LinearSVC(penalty="l2"), max_features=3),
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-featureselected-4-randomforest": lambda rng: make_pipeline(
-        SelectFromModel(LinearSVC(penalty="l2"), max_features=4),
-        RandomForestClassifier(random_state=rng)
-    ),
-    "unscaled-featureselected-5-randomforest": lambda rng: make_pipeline(
-        SelectFromModel(LinearSVC(penalty="l2"), max_features=5),
-        RandomForestClassifier(random_state=rng)
-    )
-}
 
 def prepare_args(cmd_args):
     parser = argparse.ArgumentParser(
@@ -131,14 +45,16 @@ def prepare_args(cmd_args):
     parser.add_argument("--model_target", required=False, type=str, help="location where model will be saved")
     parser.add_argument("--model_type", required=True, type=str, help="which pipeline to use for modelling", choices=AVAILABLE_PIPELINES.keys())
     parser.add_argument("--save_models", type=bool, action=argparse.BooleanOptionalAction, help="save built models for future evaluation", default=True)
+    parser.add_argument("--save_artifacts", type=bool, action=argparse.BooleanOptionalAction, help="save artifacts created by intermediate pipeline steps", default=True)
 
     return parser.parse_args(cmd_args)
 
-def new_pipeline(model_type, rng):
-    return AVAILABLE_PIPELINES[model_type](rng)
+def new_pipeline(model_type, rng, artifacts_location):
+    random_state = rng.integers(0, 2**32-1)
+    return AVAILABLE_PIPELINES[model_type](random_state, artifacts_location)
 
-def run_ml_process(predictors, classes, model_type, rng):
-    pipeline = new_pipeline(model_type, rng)
+def run_ml_process(predictors, classes, model_type, rng, artifacts_location):
+    pipeline = new_pipeline(model_type, rng, artifacts_location)
 
     print("DEFECT_PIPELINE: Triggering training for ", model_type, ".Got", len(predictors), "entries for training")
 
@@ -257,11 +173,17 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     preparation_start_ts = time.monotonic()
     args = prepare_args(cmd_args)
     print("DEFECT_PIPELINE: Running with", len(data.index), "entries")
+    global_random_state = numpy.random.default_rng()
     if args.random_seed is not None:
-        random.seed(args.random_seed)
+        global_random_state = numpy.random.default_rng(args.random_seed)
+
+    artifacts_location = None
+    if args.save_artifacts:
+        artifacts_location = os.path.join(args.model_target, "artifacts")
+        os.makedirs(artifacts_location, exist_ok=True)
 
     if training_sampler is None:
-        sampler = random_sampler(args.training_fraction, random.randint(0, 2**32 - 1))
+        sampler = random_sampler(args.training_fraction, global_random_state)
     else:
         sampler = training_sampler
 
@@ -277,7 +199,7 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     fitting_start_ts = time.monotonic()
     print("DEFECT_PIPELINE: ML pipeline will be triggered with {} samples from {} revisions for training. Using predictor columns: {} for predicting {}"
           .format(len(training_data.index), len(training_revisions.index), metric_set, class_set))
-    pipeline = run_ml_process(training_data.loc[:, metric_set], training_data.loc[:, class_set].values.ravel(), args.model_type, random.randint(0, 2**32 - 1))
+    pipeline = run_ml_process(training_data.loc[:, metric_set], training_data.loc[:, class_set].values.ravel(), args.model_type, global_random_state, artifacts_location)
 
     print("DEFECT_PIPELINE: Testing will be executed with {} samples from {} revisions".format(len(testing_data.index), len(testing_revisions.index)))
 
