@@ -179,7 +179,7 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
 
     artifacts_location = None
     if args.save_artifacts:
-        artifacts_location = os.path.join(args.model_target, "artifacts")
+        artifacts_location = args.model_target + ".artifacts"
         os.makedirs(artifacts_location, exist_ok=True)
 
     if training_sampler is None:

@@ -1,3 +1,6 @@
+import csv
+import os
+
 import numpy
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
@@ -24,7 +27,15 @@ class WrappedFeatureSelection(BaseEstimator):
         return self.intermediate_model.fit(X, y)                                  # so do nothing here
 
     def transform(self, X):
-        print(self.intermediate_model.get_support(), "\n")
+        if self.artifacts_path is not None:
+            line = [os.path.basename(self.artifacts_path)]
+            used_features = self.intermediate_model.get_feature_names_out()
+            line.extend(used_features)
+            features_file = os.path.join(self.artifacts_path, "selected_features.csv")
+            print("Used features: {}. Saving to {}".format(str(used_features), features_file))
+            with open(features_file, 'w') as f:
+                csv.writer(f).writerow(line)
+
         return self.intermediate_model.transform(X)    # alias predict as transform
 
 
