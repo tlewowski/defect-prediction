@@ -23,7 +23,7 @@ class WrappedFeatureSelection(BaseEstimator):
     def fit(self, X, y=None):                        # Assume model has already been fit
         return self.intermediate_model.fit(X, y)                                  # so do nothing here
 
-    def transform(self, X)
+    def transform(self, X):
         print(self.intermediate_model.get_support(), "\n")
         return self.intermediate_model.transform(X)    # alias predict as transform
 
