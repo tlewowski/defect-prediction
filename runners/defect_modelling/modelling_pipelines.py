@@ -4,7 +4,7 @@ from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.feature_selection import SelectFromModel
+from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2
 from sklearn.linear_model import RidgeClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -91,11 +91,26 @@ def scaled_gradientboost_pipeline(rng):
         GradientBoostingClassifier(random_state=rng)
     )
 
-def unscaled_featureselected_n_randomforest_pipeline(n):
+def unscaled_featureselected_n_svc_randomforest_pipeline(n):
     def f(rng, artifacts_path):
         return make_pipeline(
             WrappedFeatureSelection(
-                SelectFromModel(LinearSVC(penalty="l2", max_iter=1500, random_state=rng), max_features=n),
+                SelectFromModel(
+                    LinearSVC(penalty="l2", max_iter=2500, random_state=rng),
+                    max_features=n
+                ),
+                artifacts_path
+            ),
+            RandomForestClassifier(random_state=rng)
+        )
+
+    return f
+
+def unscaled_featureselected_n_kbest_randomforest_pipeline(n):
+    def f(rng, artifacts_path):
+        return make_pipeline(
+            WrappedFeatureSelection(
+                SelectKBest(chi2, k=n),
                 artifacts_path
             ),
             RandomForestClassifier(random_state=rng)
@@ -117,10 +132,14 @@ AVAILABLE_PIPELINES = {
     "unscaled-XGB": unscaled_xgboost_pipeline,
     "scaled-adaboost": scaled_adaboost_pipeline,
     "scaled-gradientboost": scaled_gradientboost_pipeline,
-    "unscaled-featureselected-1-randomforest": unscaled_featureselected_n_randomforest_pipeline(1),
-    "unscaled-featureselected-2-randomforest": unscaled_featureselected_n_randomforest_pipeline(2),
-    "unscaled-featureselected-3-randomforest": unscaled_featureselected_n_randomforest_pipeline(3),
-    "unscaled-featureselected-4-randomforest": unscaled_featureselected_n_randomforest_pipeline(4),
-    "unscaled-featureselected-5-randomforest": unscaled_featureselected_n_randomforest_pipeline(5),
-    "unscaled-featureselected-6-randomforest": unscaled_featureselected_n_randomforest_pipeline(6)
+    "unscaled-featureselected-1-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(1),
+    "unscaled-featureselected-1-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(1),
+    "unscaled-featureselected-2-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(2),
+    "unscaled-featureselected-2-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(2),
+    "unscaled-featureselected-3-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(3),
+    "unscaled-featureselected-3-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(3),
+    "unscaled-featureselected-4-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(4),
+    "unscaled-featureselected-4-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(4),
+    "unscaled-featureselected-5-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(5),
+    "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5)
 }
