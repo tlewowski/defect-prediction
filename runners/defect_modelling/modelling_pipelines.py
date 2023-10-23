@@ -1,13 +1,12 @@
 import csv
 import os
-
 import numpy
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2
+from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2, RFECV
 from sklearn.linear_model import RidgeClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -129,6 +128,37 @@ def unscaled_featureselected_n_kbest_randomforest_pipeline(n):
 
     return f
 
+def unscaled_featureselected_RFECV_DT_randomforest_pipeline(n):
+    def f(rng, artifacts_path):
+        return make_pipeline(
+            WrappedFeatureSelection(
+                RFECV(estimator=DecisionTreeClassifier(random_state=rng),
+                      cv=5,
+                      scoring='matthews_corrcoef',
+                      n_jobs=-3,
+                      step=n),
+                artifacts_path
+            ),
+            RandomForestClassifier(random_state=rng,n_jobs=-3)
+        )
+
+    return f
+
+def unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(n):
+    def f(rng, artifacts_path):
+        return make_pipeline(
+            WrappedFeatureSelection(
+                RFECV(estimator=DecisionTreeClassifier(random_state=rng),
+                      cv=5,
+                      scoring='precision',
+                      n_jobs=-3,
+                      step=n),
+                artifacts_path
+            ),
+            RandomForestClassifier(random_state=rng,n_jobs=-3)
+        )
+
+    return f
 
 AVAILABLE_PIPELINES = {
     "scaled-linear-ridge": scaled_linear_ridge_pipeline,
@@ -152,5 +182,7 @@ AVAILABLE_PIPELINES = {
     "unscaled-featureselected-4-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(4),
     "unscaled-featureselected-4-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(4),
     "unscaled-featureselected-5-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(5),
-    "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5)
+    "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5),
+    "unscaled_featureselected_RFECV_DT_randomforest": unscaled_featureselected_RFECV_DT_randomforest_pipeline(1),
+    "unscaled_featureselected_RFECV_DT_randomforest_Precision": unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(1)
 }
