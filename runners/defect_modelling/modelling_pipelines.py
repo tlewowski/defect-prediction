@@ -6,14 +6,15 @@ from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2, RFECV
+from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2, RFECV, SelectorMixin
 from sklearn.linear_model import RidgeClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier, XGBModel
-
+from boruta import BorutaPy
+import mrmr
 
 # Inspired by https://stackoverflow.com/a/76310589
 
@@ -164,6 +165,7 @@ def unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(n):
 # numpy 1.23.5 or lower is needed due to
 # https://stackoverflow.com/questions/74946845/attributeerror-module-numpy-has-no-attribute-int
 # This is work in progress as still there is a problem with this pipeline at the intersection of numpy and pandas
+# alternatively you can use repository HEAD for Boruta package
 def unscaled_featureselected_Boruta_randomforest_pipeline(n_estimators):
     def f(rng, artifacts_path):
         return make_pipeline(
@@ -175,6 +177,42 @@ def unscaled_featureselected_Boruta_randomforest_pipeline(n_estimators):
                          #n_jobs=-3,
                          #scoring='precision'
                          ),
+                artifacts_path
+            ),
+            RandomForestClassifier(random_state=rng, n_jobs=-3)
+        )
+
+    return f
+
+class MRMR(SelectorMixin, BaseEstimator):
+    def __init__(self, k):
+        self.k = k
+        self.features = []
+        self.mask = None
+        self.n_features_in_ = 0
+        self.feature_names_in_ = None
+
+    def _get_support_mask(self):
+        if self.mask is None:
+            raise ValueError("No defined mask")
+
+        return self.mask
+
+    def make_support_mask(self, X):
+        self.mask = numpy.array([col in self.features for col in X.columns])
+
+    def fit(self, X, y):
+        self.features = mrmr.mrmr_classif(X=X, y=y, K=self.k)
+        self.n_features_in_ = len(X.columns)
+        self.feature_names_in_ = X.columns
+        self.make_support_mask(X)
+        return self
+
+def unscaled_featureselected_mrmr_randomforest_pipeline(n_estimators):
+    def f(rng, artifacts_path):
+        return make_pipeline(
+            WrappedFeatureSelection(
+                MRMR(n_estimators),
                 artifacts_path
             ),
             RandomForestClassifier(random_state=rng, n_jobs=-3)
@@ -208,5 +246,6 @@ AVAILABLE_PIPELINES = {
     "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5),
     "unscaled_featureselected_RFECV_DT_randomforest": unscaled_featureselected_RFECV_DT_randomforest_pipeline(1),
     "unscaled_featureselected_RFECV_DT_randomforest_Precision": unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(1),
-    "unscaled_featureselected_Boruta_randomforest_pipeline": unscaled_featureselected_Boruta_randomforest_pipeline(1)
+    "unscaled_featureselected_Boruta_randomforest_pipeline": unscaled_featureselected_Boruta_randomforest_pipeline(1),
+    "unscaled_featureselected_mrmr_randomforest_pipeline": unscaled_featureselected_mrmr_randomforest_pipeline(5)
 }
