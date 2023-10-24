@@ -160,6 +160,29 @@ def unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(n):
 
     return f
 
+
+# numpy 1.23.5 or lower is needed due to
+# https://stackoverflow.com/questions/74946845/attributeerror-module-numpy-has-no-attribute-int
+# This is work in progress as still there is a problem with this pipeline at the intersection of numpy and pandas
+def unscaled_featureselected_Boruta_randomforest_pipeline(n_estimators):
+    def f(rng, artifacts_path):
+        return make_pipeline(
+            WrappedFeatureSelection(
+                BorutaPy(RandomForestClassifier(random_state=rng, n_jobs=-3),
+                         n_estimators='auto',
+                         random_state=rng,
+                         verbose=2,
+                         #n_jobs=-3,
+                         #scoring='precision'
+                         ),
+                artifacts_path
+            ),
+            RandomForestClassifier(random_state=rng, n_jobs=-3)
+        )
+
+    return f
+
+
 AVAILABLE_PIPELINES = {
     "scaled-linear-ridge": scaled_linear_ridge_pipeline,
     "unscaled-linear": unscaled_linear_ridge_pipeline,
@@ -184,5 +207,6 @@ AVAILABLE_PIPELINES = {
     "unscaled-featureselected-5-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(5),
     "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5),
     "unscaled_featureselected_RFECV_DT_randomforest": unscaled_featureselected_RFECV_DT_randomforest_pipeline(1),
-    "unscaled_featureselected_RFECV_DT_randomforest_Precision": unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(1)
+    "unscaled_featureselected_RFECV_DT_randomforest_Precision": unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(1),
+    "unscaled_featureselected_Boruta_randomforest_pipeline": unscaled_featureselected_Boruta_randomforest_pipeline(1)
 }
