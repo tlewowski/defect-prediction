@@ -202,7 +202,7 @@ class MRMR(SelectorMixin, BaseEstimator):
         self.mask = numpy.array([col in self.features for col in X.columns])
 
     def fit(self, X, y):
-        self.features = mrmr.mrmr_classif(X=X, y=y, K=self.k)
+        self.features = mrmr.mrmr_classif(X=X, y=y, K=self.k, relevance="rf")
         self.n_features_in_ = len(X.columns)
         self.feature_names_in_ = X.columns
         self.make_support_mask(X)
@@ -243,9 +243,14 @@ AVAILABLE_PIPELINES = {
     "unscaled-featureselected-4-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(4),
     "unscaled-featureselected-4-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(4),
     "unscaled-featureselected-5-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(5),
+    "unscaled-featureselected-7-kbest-randomforest": unscaled_featureselected_n_kbest_randomforest_pipeline(7),
     "unscaled-featureselected-5-svc-randomforest": unscaled_featureselected_n_svc_randomforest_pipeline(5),
     "unscaled_featureselected_RFECV_DT_randomforest": unscaled_featureselected_RFECV_DT_randomforest_pipeline(1),
     "unscaled_featureselected_RFECV_DT_randomforest_Precision": unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(1),
-    "unscaled_featureselected_Boruta_randomforest_pipeline": unscaled_featureselected_Boruta_randomforest_pipeline(1),
-    "unscaled_featureselected_mrmr_randomforest_pipeline": unscaled_featureselected_mrmr_randomforest_pipeline(5)
+    "unscaled_featureselected_Boruta_randomforest_pipeline-3": unscaled_featureselected_Boruta_randomforest_pipeline(3),
+    "unscaled_featureselected_Boruta_randomforest_pipeline-5": unscaled_featureselected_Boruta_randomforest_pipeline(5),
+    "unscaled_featureselected_Boruta_randomforest_pipeline-7": unscaled_featureselected_Boruta_randomforest_pipeline(7),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-3": unscaled_featureselected_mrmr_randomforest_pipeline(3),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-5": unscaled_featureselected_mrmr_randomforest_pipeline(5),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-7": unscaled_featureselected_mrmr_randomforest_pipeline(7),
 }
