@@ -138,6 +138,13 @@ METRIC_SETS["best-precision"] = ["la",
                                ]
 
 
+METRIC_SETS["1-1"] = ["la"]
+METRIC_SETS["1-2"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange"]
+METRIC_SETS["1-3"] = ["JAVAMETRICS2_MeanAuthorCommits"]
+METRIC_SETS["1-4"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange"]
+METRIC_SETS["1-5"] = ["JAVAMETRICS2_NumberOfFieldAnnotations"]
+METRIC_SETS["1-6"] = ["JAVAMETRICS2_NumberOfAccessorMethods"]
+METRIC_SETS["1-7"] = ["JAVAMETRICS2_NumberOfMutatorMethods"]
 METRIC_SETS["2-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la"]
 METRIC_SETS["3-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la","age"]
 METRIC_SETS["3-2"] = ["la","age","nuc"]
