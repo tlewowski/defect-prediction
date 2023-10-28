@@ -138,7 +138,7 @@ METRIC_SETS["best-precision"] = ["la",
                                ]
 
 
-
+METRIC_SETS["2-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la"]
 METRIC_SETS["3-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la","age"]
 METRIC_SETS["3-2"] = ["la","age","nuc"]
 METRIC_SETS["5-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la","nd","age","nuc"]
@@ -148,10 +148,10 @@ METRIC_SETS["6-1"] = ["la","ent","ndev","age","nuc","aexp"]
 METRIC_SETS["6-2"] = ["la","ent","ndev","age","nuc","arexp"]
 METRIC_SETS["7-1"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la","ld","nd","age","nuc","arexp"]
 METRIC_SETS["7-2"] = ["JAVAMETRICS2_AverageNumberOfDeletedLines","JAVAMETRICS2_DaysPassedSinceTheLastChange","la","nd","age","nuc","arexp"]
-METRIC_SETS["7-3"] = ["JAVAMETRICS2_DaysPassedSinceTheLastChange","la","ld","nd","age","nuc","arexp"]
-METRIC_SETS["7-4"] = ["la","ld","ent","ndev","age","nuc","arexp"]
-METRIC_SETS["7-5"] = ["la","ent","ndev","age","nuc","arexp","asexp"]
-METRIC_SETS["7-6"] = ["la","ld","ent","ndev","age","nuc","aexp"]
+METRIC_SETS["7-3"] = ["la","ld","ent","ndev","age","nuc","arexp"]
+METRIC_SETS["7-4"] = ["la","ent","ndev","age","nuc","arexp","asexp"]
+METRIC_SETS["7-5"] = ["la","ld","ent","ndev","age","nuc","aexp"]
 METRIC_SETS["8-1"] = ["la","nf","ent","ndev","age","nuc","arexp","asexp"]
+METRIC_SETS["8-2"] = ["JAVAMETRICS2_AverageNumberOfDeletedLines","la","ld","nf","nd","age","nuc","arexp"]
 METRIC_SETS["9-1"] = ["JAVAMETRICS2_AverageNumberOfDeletedLines","JAVAMETRICS2_DaysPassedSinceTheLastChange","la","ld","nf","nd","age","nuc","arexp"]
 METRIC_SETS["9-2"] = ["la","ld","nf","ent","ndev","age","nuc","arexp","asexp"]
