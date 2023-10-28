@@ -39,7 +39,7 @@ class WrappedFeatureSelection(BaseEstimator):
         return self.intermediate_model.transform(X)    # alias predict as transform
 
 
-def scaled_linear_ridge_pipeline():
+def scaled_linear_ridge_pipeline(*args, **kwargs):
     return make_pipeline(
         PCA(),
         StandardScaler(),
@@ -47,11 +47,11 @@ def scaled_linear_ridge_pipeline():
     )
 
 
-def unscaled_linear_ridge_pipeline():
+def unscaled_linear_ridge_pipeline(*args, **kwargs):
     return make_pipeline(RidgeClassifier())
 
 
-def scaled_randomforest_pipeline(rng):
+def scaled_randomforest_pipeline(rng, *args, **kwargs):
     return make_pipeline(
         PCA(),
         StandardScaler(),
@@ -59,16 +59,16 @@ def scaled_randomforest_pipeline(rng):
     )
 
 
-def unscaled_randomforest_pipeline(rng):
+def unscaled_randomforest_pipeline(rng, *args, **kwargs):
     return make_pipeline(RandomForestClassifier(random_state=rng))
 
 
-def unscaled_decisiontree_pipeline():
+def unscaled_decisiontree_pipeline(*args, **kwargs):
     return make_pipeline(DecisionTreeClassifier())
 
 
 def unscaled_catboost_pipeline_creator(false_weight):
-    return lambda rng: make_pipeline(
+    return lambda rng, *args, **kwargs: make_pipeline(
         CatBoostClassifier(
             class_weights={
                 1: 1-false_weight,
@@ -79,15 +79,15 @@ def unscaled_catboost_pipeline_creator(false_weight):
     )
 
 
-def unscaled_lgbm_pipeline (rng):
+def unscaled_lgbm_pipeline (rng, *args, **kwargs):
     return make_pipeline(LGBMClassifier(random_state=rng))
 
 
-def unscaled_xgboost_pipeline(rng):
+def unscaled_xgboost_pipeline(rng, *args, **kwargs):
     return make_pipeline(XGBClassifier(XGBModel(random_state=rng)))
 
 
-def scaled_adaboost_pipeline(rng):
+def scaled_adaboost_pipeline(rng, *args, **kwargs):
     return make_pipeline(
         PCA(),
         StandardScaler(),
@@ -95,7 +95,7 @@ def scaled_adaboost_pipeline(rng):
     )
 
 
-def scaled_gradientboost_pipeline(rng):
+def scaled_gradientboost_pipeline(rng, *args, **kwargs):
     return make_pipeline(
         PCA(),
         StandardScaler(),
@@ -103,7 +103,7 @@ def scaled_gradientboost_pipeline(rng):
     )
 
 def unscaled_featureselected_n_svc_randomforest_pipeline(n):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 SelectFromModel(
@@ -118,7 +118,7 @@ def unscaled_featureselected_n_svc_randomforest_pipeline(n):
     return f
 
 def unscaled_featureselected_n_kbest_randomforest_pipeline(n):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 SelectKBest(chi2, k=n),
@@ -130,7 +130,7 @@ def unscaled_featureselected_n_kbest_randomforest_pipeline(n):
     return f
 
 def unscaled_featureselected_RFECV_DT_randomforest_pipeline(n):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 RFECV(estimator=DecisionTreeClassifier(random_state=rng),
@@ -146,7 +146,7 @@ def unscaled_featureselected_RFECV_DT_randomforest_pipeline(n):
     return f
 
 def unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(n):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 RFECV(estimator=DecisionTreeClassifier(random_state=rng),
@@ -167,7 +167,7 @@ def unscaled_featureselected_RFECV_DT_randomforest_Precision_pipeline(n):
 # This is work in progress as still there is a problem with this pipeline at the intersection of numpy and pandas
 # alternatively you can use repository HEAD for Boruta package
 def unscaled_featureselected_Boruta_randomforest_pipeline(n_estimators):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 BorutaPy(RandomForestClassifier(random_state=rng, n_jobs=-3),
@@ -209,7 +209,7 @@ class MRMR(SelectorMixin, BaseEstimator):
         return self
 
 def unscaled_featureselected_mrmr_randomforest_pipeline(n_estimators):
-    def f(rng, artifacts_path):
+    def f(rng, artifacts_path, *args, **kwargs):
         return make_pipeline(
             WrappedFeatureSelection(
                 MRMR(n_estimators),
