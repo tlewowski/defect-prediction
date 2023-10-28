@@ -250,8 +250,14 @@ AVAILABLE_PIPELINES = {
     "unscaled_featureselected_Boruta_randomforest_pipeline-3": unscaled_featureselected_Boruta_randomforest_pipeline(3),
     "unscaled_featureselected_Boruta_randomforest_pipeline-5": unscaled_featureselected_Boruta_randomforest_pipeline(5),
     "unscaled_featureselected_Boruta_randomforest_pipeline-7": unscaled_featureselected_Boruta_randomforest_pipeline(7),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-1": unscaled_featureselected_mrmr_randomforest_pipeline(1),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-2": unscaled_featureselected_mrmr_randomforest_pipeline(2),
     "unscaled_featureselected_mrmr_randomforest_pipeline-3": unscaled_featureselected_mrmr_randomforest_pipeline(3),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-4": unscaled_featureselected_mrmr_randomforest_pipeline(4),
     "unscaled_featureselected_mrmr_randomforest_pipeline-5": unscaled_featureselected_mrmr_randomforest_pipeline(5),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-6": unscaled_featureselected_mrmr_randomforest_pipeline(6),
     "unscaled_featureselected_mrmr_randomforest_pipeline-7": unscaled_featureselected_mrmr_randomforest_pipeline(7),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-8": unscaled_featureselected_mrmr_randomforest_pipeline(8),
     "unscaled_featureselected_mrmr_randomforest_pipeline-9": unscaled_featureselected_mrmr_randomforest_pipeline(9),
+    "unscaled_featureselected_mrmr_randomforest_pipeline-10": unscaled_featureselected_mrmr_randomforest_pipeline(10)
 }
