@@ -133,7 +133,7 @@ def dump_models(workdir, filename, model_list):
             "real_tpr",
             "real_fnr",
             "real_fpr",
-            "real_fnr",
+            "real_tnr",
             "real_total",
             "fake_mcc",
             "fake_f1",
