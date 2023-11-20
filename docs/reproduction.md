@@ -1,9 +1,12 @@
 ## Reproduction
 
-The PhD thesis consisted of several steps leading to finally building and evaluating defect prediction models.
+The research consisted of several steps leading to finally building and evaluating defect prediction models.
 
 Those steps are described in the order of execution below. Be aware that some of them
 may take a rather long time (weeks) and are meant to be parallelized, possibly in a cloud setup.
+
+All intermediate results coming from long-running processes can be also downloaded directly from Zenodo and used
+as was in the original research.
 
 This parallelization is _not_ included in the reproduction scripts, because it heavily depends
 on the number of available machines and their power. Instead, each script that may be 
@@ -26,6 +29,8 @@ There are three main steps related to preparing the final source data file:
 For readers' convenience, complete data sets ready to be used in further steps are provided here:
 - smells: https://metrics-v2.s3.eu-west-3.amazonaws.com/merged-smells.zip
 - defects: https://metrics-v2.s3.eu-west-3.amazonaws.com/prejoined_full.zip
+
+They are also available on Zenodo.
 
 For readers who want to run the full reproduction, several support scripts are provided:
 
@@ -65,17 +70,19 @@ https://metrics-v2.s3.eu-west-3.amazonaws.com/smell-models.zip
 
 #### Defects
 
-To run defect modelling experiments, follow steps defined in `runners/invoke-defects-models-experiment.sh`
+To run defect modelling experiments, follow steps defined in `runners/invoke-basic-experiment-cloud.sh`
 
 Be aware that this script contains several experiments - in particular, there are two separate experiments
 for single metrics (`single_metrics_experiment`) and for metric sets (`metric_sets`). Existence of code smells is 
 calculated automatically on script startup, and then is added to the data set used for training and testing.
 
+The last, fourth experiment can be reproduced using `runners/invoke-minimal-experiment.sh` script.
+
 ### Reporting
 
 Reporting is done manually, basing on Jupyter notebooks in `manual_analysis`.
 
-In particular, notebooks `smell-performance-*` and `defect-performance-*` contain basic analysis
-of performance of created models. Exports from these notebooks were later on included in the thesis and accompanying papers.
+In particular, notebooks `smell-performance-*` and `defect-performance-*` (in subdirectories) contain basic analysis
+of performance of created models. Exports from these notebooks were later on included in the research and accompanying papers.
 
 Make sure that paths to data files match whatever you have on your machine.
