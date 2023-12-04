@@ -1,0 +1,24 @@
+title Framework architecture
+
+component DataCollection
+
+component SmellExperiment
+component SmellModelling
+
+component DefectExperiment
+
+component AnalysisScripts
+
+database MLCQ
+database ApacheJIT
+
+DataCollection --> SmellModelling : MLCQ\ntraining data
+DataCollection --> DefectExperiment : ApacheJIT \ntraining and testing data
+DataCollection --> SmellExperiment : MLCQ\ntesting data
+SmellModelling --> DefectExperiment : Smell models
+SmellModelling --> SmellExperiment : Smell models\n for verification
+DefectExperiment --> AnalysisScripts : Experiment results
+
+ApacheJIT --> DataCollection : defects data
+MLCQ --> DataCollection : smells data
+

@@ -1,0 +1,20 @@
+title Smell experiment architecture
+
+component Experiment
+component Runner
+
+component Preprocessor
+
+component RandomForestModeller
+
+component Evaluator
+
+Experiment --> Runner
+
+Runner --> Preprocessor
+Runner --> RandomForestModeller
+Runner --> Evaluator
+
+component MetricSelector
+
+Preprocessor --> MetricSelector

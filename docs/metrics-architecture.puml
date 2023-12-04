@@ -1,0 +1,35 @@
+title Metric gathering architecture
+
+component Multirunner
+component Singlerunner
+
+component MetricTool
+
+component JavaMetrics
+component JavaMetrics2 as "JavaMetrics 2"
+component PMD
+component PyDriller
+
+component OutputConverter
+component ProjectResolver
+component GitProjectCloner
+
+component ResearchContext
+
+
+ResearchContext --> MetricTool
+MetricTool --> JavaMetrics
+MetricTool --> JavaMetrics2
+MetricTool --> PMD
+MetricTool --> PyDriller
+
+MetricTool -> ProjectResolver
+
+ResearchContext --> ProjectResolver
+ResearchContext --> OutputConverter
+
+ProjectResolver --> GitProjectCloner
+
+Multirunner --> Singlerunner
+
+Singlerunner --> ResearchContext

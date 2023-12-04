@@ -1,0 +1,33 @@
+title Smell experiment architecture
+
+component Experiment
+component Runner
+
+component Preprocessor
+
+component ModellingPipeline
+
+component Evaluator
+
+Experiment --> Runner
+
+Runner --> Preprocessor
+Runner --> ModellingPipeline
+Runner --> Evaluator
+
+component MetricSelector
+
+Preprocessor --> MetricSelector
+
+
+component Catboost
+component XGBoost
+component RandomForest
+component LinearRidge
+component CustomClassifierPipeline
+
+ModellingPipeline --> Catboost
+ModellingPipeline --> XGBoost
+ModellingPipeline --> LinearRidge
+ModellingPipeline --> RandomForest
+ModellingPipeline --> CustomClassifierPipeline
