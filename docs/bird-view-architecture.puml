@@ -1,23 +1,28 @@
 title Framework architecture
 
 component DataCollection
+component "Metric Collection Tool\n(e.g. PMD, JavaMetrics, JavaMetrics2)" as Tools
 
 component SmellExperiment
 component SmellModelling
+component "Machine Learning Pipeline\n(e.g. scaling, feature selection, ML model)" as MLP
 
 component DefectExperiment
 
 component AnalysisScripts
 
-database MLCQ
-database ApacheJIT
+database "Smells Data \n(e.g. MLCQ)" as MLCQ
+database "Defects Data \n(e.g. ApacheJIT)" as ApacheJIT
 
+component DataCollection
+DataCollection -> Tools : Collect metrics using
 DataCollection --> SmellModelling : MLCQ\ntraining data
 DataCollection --> DefectExperiment : ApacheJIT \ntraining and testing data
 DataCollection --> SmellExperiment : MLCQ\ntesting data
 SmellModelling --> DefectExperiment : Smell models
 SmellModelling --> SmellExperiment : Smell models\n for verification
 DefectExperiment --> AnalysisScripts : Experiment results
+DefectExperiment -> MLP : Build models using
 
 ApacheJIT --> DataCollection : defects data
 MLCQ --> DataCollection : smells data
