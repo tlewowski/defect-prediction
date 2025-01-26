@@ -14,7 +14,6 @@ from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier, XGBModel
 from boruta import BorutaPy
-import mrmr
 
 # Inspired by https://stackoverflow.com/a/76310589
 
@@ -202,6 +201,7 @@ class MRMR(SelectorMixin, BaseEstimator):
         self.mask = numpy.array([col in self.features for col in X.columns])
 
     def fit(self, X, y):
+        import mrmr
         self.features = mrmr.mrmr_classif(X=X, y=y, K=self.k, relevance="rf")
         self.n_features_in_ = len(X.columns)
         self.feature_names_in_ = X.columns
