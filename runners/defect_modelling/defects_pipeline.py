@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import datetime
 import functools
 import hashlib
@@ -6,23 +7,15 @@ import os.path
 import sys
 import time
 
+os.environ["KERAS_BACKEND"] = "torch"
+
+import keras
 import numpy
 import skops.io
 import humanize
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.feature_selection import VarianceThreshold, SelectFromModel
-from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, \
     balanced_accuracy_score, matthews_corrcoef, confusion_matrix
-from sklearn.pipeline import make_pipeline
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from catboost import CatBoostClassifier
-from lightgbm import LGBMClassifier
-from xgboost import XGBClassifier, XGBModel
 
 from defect_schema import METRIC_SETS, CLASS_SETS
 from smell_modelling.evaluate import evaluate_on_data, select_columns
@@ -46,6 +39,8 @@ def prepare_args(cmd_args):
     parser.add_argument("--model_type", required=True, type=str, help="which pipeline to use for modelling", choices=AVAILABLE_PIPELINES.keys())
     parser.add_argument("--save_models", type=bool, action=argparse.BooleanOptionalAction, help="save built models for future evaluation", default=True)
     parser.add_argument("--save_artifacts", type=bool, action=argparse.BooleanOptionalAction, help="save artifacts created by intermediate pipeline steps", default=True)
+    parser.add_argument("--pretransformer_path", type=str, help="Path to model for pre-transforming data", required=False)
+    parser.add_argument("--pretransformer_mode", type=str, help="Mode for the pretransformer", required=False, choices=["featureselection", "denoising"])
 
     return parser.parse_args(cmd_args)
 
@@ -56,7 +51,7 @@ def new_pipeline(model_type, rng, artifacts_location):
 def run_ml_process(predictors, classes, model_type, rng, artifacts_location):
     pipeline = new_pipeline(model_type, rng, artifacts_location)
 
-    print("DEFECT_PIPELINE: Triggering training for ", model_type, ".Got", len(predictors), "entries for training")
+    print("DEFECT_PIPELINE: Triggering training for ", model_type, ".Got", len(predictors), f"entries for training")
 
     calculation_start_time = time.monotonic()
     pipeline.fit(predictors, classes)
@@ -68,8 +63,8 @@ def run_ml_process(predictors, classes, model_type, rng, artifacts_location):
 def test_ml_pipeline(pipeline, test_data, metric_set, class_set):
     revisions = test_data.loc[:, ["revision"]]
     test_predictors = test_data.loc[:, metric_set]
-    classes = test_data.loc[:, class_set]
-    predictions = pipeline.predict(test_predictors).astype(classes[class_set[0]].dtype)
+    classes = test_data.loc[:, class_set].astype('int')
+    predictions = pipeline.predict(test_predictors).astype('int')
 
     scoring = {
         "mcc": matthews_corrcoef,
@@ -169,6 +164,40 @@ def prepare_data_set(data_file, smell_models):
 def random_sampler(train_ratio, random_state):
     return lambda ds, classes: ds.groupby(classes).sample(frac=train_ratio, random_state=random_state)
 
+
+def cut_to_featureselection(pretransformer):
+    featureselection_final_layer = int((len(pretransformer.layers) - 1) / 2)
+    return keras.Sequential(pretransformer.layers[:featureselection_final_layer+1])
+
+@dataclasses.dataclass
+class Pretransformer:
+    model: keras.Model
+
+    def pretransform(self, metric_set, data):
+        input_data = data.loc[:, metric_set].to_numpy()
+        altered = self.model.predict(input_data)
+        _, cols = altered.shape
+
+        additions = data.drop(metric_set, axis=1)
+        with_classes = numpy.concatenate((altered, additions.to_numpy()), axis=1)
+        df = pd.DataFrame(with_classes)
+
+        mapping = {c: additions.columns[c - cols] for c in range(cols, cols+len(additions.columns)) }
+        df = df.rename(columns=mapping)
+
+        return df, list(df.columns)[:cols]
+
+def load_pretransformer(path, mode):
+    model = keras.models.load_model(path)
+    if mode == "featureselection":
+        first_half = cut_to_featureselection(model)
+        return Pretransformer(first_half)
+    elif mode == "denoising":
+        return Pretransformer(model)
+    else:
+        raise ValueError(f"Unknown pretransformer mode: {mode}")
+
+
 def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     preparation_start_ts = time.monotonic()
     args = prepare_args(cmd_args)
@@ -196,10 +225,27 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
     training_data = relevant_data[relevant_data.revision.isin(training_revisions.revision)]
     testing_data = relevant_data[relevant_data.revision.isin(testing_revisions.revision)]
 
+    if args.pretransformer_path is not None:
+        print(f"DEFECT_PIPELINE: using pretransformer from {args.pretransformer_path} to adjust input data")
+        pretransforming_start_ts = time.monotonic()
+        pretransformer = load_pretransformer(args.pretransformer_path, args.pretransformer_mode)
+        training_data, cols = pretransformer.pretransform(metric_set, training_data)
+        testing_data, _ = pretransformer.pretransform(metric_set, testing_data)
+        metric_set = cols
+        class_data = training_data.loc[:, class_set].values.ravel()
+
+        pretransforming_end_ts = time.monotonic()
+        print(f"DEFECT_PIPELINE: pretransformation of data took {humanize.naturaldelta(pretransforming_end_ts - pretransforming_start_ts)}. Current metric set: {metric_set}, columns: {training_data.columns}")
+    else:
+        class_data = training_data.loc[:, class_set].values.ravel()
+
+
+    training_data = training_data.reset_index(drop=True)
+
     fitting_start_ts = time.monotonic()
     print("DEFECT_PIPELINE: ML pipeline will be triggered with {} samples from {} revisions for training. Using predictor columns: {} for predicting {}"
           .format(len(training_data.index), len(training_revisions.index), metric_set, class_set))
-    pipeline = run_ml_process(training_data.loc[:, metric_set], training_data.loc[:, class_set].values.ravel(), args.model_type, global_random_state, artifacts_location)
+    pipeline = run_ml_process(training_data.loc[:, metric_set], class_data.astype('int'), args.model_type, global_random_state, artifacts_location)
 
     print("DEFECT_PIPELINE: Testing will be executed with {} samples from {} revisions".format(len(testing_data.index), len(testing_revisions.index)))
 
@@ -213,6 +259,9 @@ def run_on_data(cmd_args, data, datafile_checksum, training_sampler = None):
         "model": pipeline,
         "model_type": args.model_type,
         "metric_set": args.metric_set,
+        "final_metric_set": metric_set,
+        "pretransformer": args.pretransformer_path,
+        "pretransformer_mode": args.pretransformer_mode,
         "class_set": args.class_set,
         "name": "DEFECTS_" + os.path.basename(args.model_target or "UNNAMED"),
         "training_fraction": args.training_fraction,

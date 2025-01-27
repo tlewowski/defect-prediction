@@ -3,8 +3,8 @@ import argparse
 import pandas as pd
 import skops.io
 
-from smell_utils import cleanse
-from smell_schema import METRIC_SETS
+from .smell_utils import cleanse
+from .smell_schema import METRIC_SETS
 
 def prepare_args():
     parser = argparse.ArgumentParser(

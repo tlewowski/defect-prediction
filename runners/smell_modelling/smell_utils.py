@@ -1,5 +1,5 @@
 import pandas as pd
-from smell_schema import METRIC_SETS
+from .smell_schema import METRIC_SETS
 
 def impute_data(data):
     print("SMELL_UTILS: Imputing for a total of {} entries.".format(len(data.index)))
