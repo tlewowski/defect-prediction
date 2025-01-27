@@ -36,11 +36,14 @@ def prepare_args():
     parser.add_argument("--training_fraction", required=False, type=float, help="If given, represents ratio of data set that will be used for training. If not given, per-project approach will be used.")
     parser.add_argument("--save_models", type=bool, action=argparse.BooleanOptionalAction, help="save built models for future evaluation", default=True)
     parser.add_argument("--save_artifacts", type=bool, action=argparse.BooleanOptionalAction, help="save additional artifacts created by intermediate pipeline steps", default=True)
+    parser.add_argument("--pretransformer_path", type=str, help="Path to model for pre-transforming data", required=False)
+    parser.add_argument("--pretransformer_mode", type=str, help="Mode for the pretransformer", required=False, choices=["featureselection", "denoising"])
+
 
     return parser.parse_args()
 
 
-def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, metric_set, index, seed, project, smell_models, training_fraction, save_models, save_artifacts):
+def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, metric_set, index, seed, project, smell_models, training_fraction, save_models, save_artifacts, pretransformer_path, pretransformer_mode):
     model_workspace = os.path.join(workspace, "workdir", metric_set, str(index))
     os.makedirs(model_workspace, exist_ok=True)
     model_target = os.path.abspath(
@@ -59,6 +62,10 @@ def evaluate_model(workspace, model_type, data, datafile_checksum, models_dir, m
               "--save_models" if save_models else "--no-save_models",
               "--save_artifacts" if save_artifacts else "--no-save_artifacts"
               ]
+
+    if pretransformer_path is not None:
+        params.extend(["--pretransformer_path", pretransformer_path])
+        params.extend(["--pretransformer_mode", pretransformer_mode])
 
     if len(smell_models) > 0:
         params.append("--smell_models")
@@ -196,13 +203,13 @@ def run_as_main():
                     try:
                         if metric_set != 'none':
                             metric_models.append(
-                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models, args.save_artifacts))
+                                minimized_output(evaluate_model(args.workspace, model_type, data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, [], args.training_fraction, args.save_models, args.save_artifacts, args.pretransformer_path, args.pretransformer_mode))
                             )
 
                         if args.smell_models is not None:
                             metric_models.append(
                                 minimized_output(
-                                    evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models, args.save_artifacts)
+                                    evaluate_model(args.workspace, model_type,data, datafile_checksum, models_dir, metric_set, i, seeds[i], project, args.smell_models, args.training_fraction, args.save_models, args.save_artifacts, args.pretransformer_path, args.pretransformer_mode)
                                 )
                             )
                         print("DEFECTS_EXPERIMENT: Evaluated model '{}' for predictor set: '{}', project: {}. Took: {}".format(model_type, metric_set, project, humanize.naturaldelta(datetime.timedelta(seconds=time.monotonic() - model_start_time))))
