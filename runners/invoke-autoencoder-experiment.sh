@@ -36,10 +36,10 @@ for i in {1..10} ; do
   for arch in "${archs[@]}"
   do
     echo Running iteration $i for $arch using ../autoencoders/autoencoder_${arch}_${i}.keras as model
-    poetry run python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 5 --workspace ../workdir-autoencoders-20250203-$i-$arch-denoising --training_fraction 0.8 --save_artifacts --metric_sets all-non-null-numeric --pipelines scaled-linear-ridge unscaled-randomforest unscaled-decisiontree --pretransformer_mode denoising --pretransformer_path ../autoencoders/autoencoder_${arch}_${i}.keras
+    poetry run python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 5 --workspace ../workdir-autoencoders-20250203-$i-$arch-denoising --training_fraction 0.8 --no-save_artifacts  --no-save_models --metric_sets all-non-null-numeric --pipelines scaled-linear-ridge unscaled-randomforest unscaled-decisiontree --pretransformer_mode denoising --pretransformer_path ../autoencoders/autoencoder_${arch}_${i}.keras
     c=c+1
     report_status
-    poetry run python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 5 --workspace ../workdir-autoencoders-20250203-$i-$arch-featureselection --training_fraction 0.8 --save_artifacts --metric_sets all-non-null-numeric --pipelines scaled-linear-ridge unscaled-randomforest unscaled-decisiontree --pretransformer_mode featureselection --pretransformer_path ../autoencoders/autoencoder_${arch}_${i}.keras
+    poetry run python -m defect_modelling.experiment --data_file ../data/prejoined_full.csv --model_count 5 --workspace ../workdir-autoencoders-20250203-$i-$arch-featureselection --training_fraction 0.8 --no-save_artifacts --no-save_models --metric_sets all-non-null-numeric --pipelines scaled-linear-ridge unscaled-randomforest unscaled-decisiontree --pretransformer_mode featureselection --pretransformer_path ../autoencoders/autoencoder_${arch}_${i}.keras
     c=c+1
     report_status
   done
